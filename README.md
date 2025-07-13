@@ -7,10 +7,14 @@ Grouptech is created using Python and React.
 
 ![Login Page](https://github.com/user-attachments/assets/d9d13816-486d-4ec0-ae8a-ca27e2a30826)
 
-Portal options:
+### Portal options:
  - Staff Login
  - Student Login
 (Staff members have different rights and functionality)
+
+### Users:
+ - Staff - can look at all module chats, including private group chats, can't use grouping algorithm
+ - Student - can use grouping algorithm, can't see staff chats, only sees public chats and messages in their private group chat
 
 ---
 
@@ -18,7 +22,7 @@ Portal options:
 
 ![Grousp Page](https://github.com/user-attachments/assets/9028ff34-f6cb-4d5a-88ac-0b19f379d164)
 
-Options:
+### Options:
  - Modules - users can go to their specific subject modules
  - Channels - each module has different text channels
  - Group Queue(students only) - students can use the algorithm to find a group based on factors including grades and contribution to projects
@@ -38,7 +42,7 @@ Users can send each other private messages
 
 ![Settings Page](https://github.com/user-attachments/assets/cc0c5271-eaf8-4119-8a38-51e32d2510df)
 
-Options:
+### Options:
  - Theme change - users can select between theme presets
  - Custom theme creation - users can create custom themes and adjust every single color and the background image of the application
 
