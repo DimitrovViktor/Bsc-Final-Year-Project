@@ -22,9 +22,11 @@ Grouptech is created using Python and React.
 
 ![Grousp Page](https://github.com/user-attachments/assets/9028ff34-f6cb-4d5a-88ac-0b19f379d164)
 
-### Options:
+### Features:
  - Modules - users can go to their specific subject modules
  - Channels - each module has different text channels
+    - Sending Messages and attachments
+    - Deleting/editing Messages
  - Group Queue(students only) - students can use the algorithm to find a group based on factors including grades and contribution to projects
  - Group Chats(specific students and staff only) -  the grouping algorithm finds groups for students and creates a private group chat visible to group members(determined by algorithm) and staff members are allowed to view messages and moderate it
 
@@ -34,7 +36,7 @@ Grouptech is created using Python and React.
 
 ![Direct Messages Page](https://github.com/user-attachments/assets/d42f127c-4a83-44a1-982c-237d106ab60d)
 
-Users can send each other private messages
+Users can send each other private messages. They are also allowed to edit or delete their own messages.
 
 ---
 
@@ -42,7 +44,7 @@ Users can send each other private messages
 
 ![Settings Page](https://github.com/user-attachments/assets/cc0c5271-eaf8-4119-8a38-51e32d2510df)
 
-### Options:
+### Features:
  - Theme change - users can select between theme presets
  - Custom theme creation - users can create custom themes and adjust every single color and the background image of the application
 
