@@ -36,7 +36,7 @@ Grouptech is created using Python and React.
 
 ![Direct Messages Page](https://github.com/user-attachments/assets/d42f127c-4a83-44a1-982c-237d106ab60d)
 
-Users can send each other private messages. They are also allowed to edit or delete their own messages.
+Users can send each other private messages. They are also allowed to edit or delete their own messages. Message updates (edited and deleted messages) display in real time after change.
 
 ---
 
