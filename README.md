@@ -1,6 +1,6 @@
 # GroupTech - A communication application with a grouping algorithm for students
 
-Grouptech is created using Python and React.
+Grouptech is created using Python and React. The main purpose of the application is to place students into groups. Once the groups are made it creates group chats for students based on factors such as previous performance including grades, contribution percentages in previous projects, number of projects, etc. These chats can only be seen by the students in the group and staff.
 
 
 ## Login Page
