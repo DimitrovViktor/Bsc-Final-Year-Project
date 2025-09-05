@@ -25,8 +25,8 @@ Grouptech is created using Python and React. The main purpose of the application
 ### Features:
  - Modules - users can go to their specific subject modules
  - Channels - each module has different text channels
-    - Sending Messages and attachments
-    - Deleting/editing Messages
+    - Sending Messages and attachments (A message can contain multiple files, text, and images. Messages have image preview/download options)
+    - Deleting/editing Messages (Messages are automatically updated in real time once edited/deleted for everyone looking at the chat)
  - Group Queue(students only) - students can use the algorithm to find a group based on factors including grades and contribution to projects
  - Group Chats(specific students and staff only) -  the grouping algorithm finds groups for students and creates a private group chat visible to group members(determined by algorithm) and staff members are allowed to view messages and moderate it
 
