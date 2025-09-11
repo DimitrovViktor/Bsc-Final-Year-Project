@@ -84,14 +84,7 @@ const StartPage = () => {
 
     <div className="relative w-full h-screen animate-fade-in overflow-hidden">
       {}
-      <button
-        onClick={() => setSidebarOpen(s => !s)}
-        className="absolute z-20 left-6 p-2 rounded-full bg-[rgba(var(--color-sidenav-primary-rgb),0.8)] border-2 border-[var(--color-accent)] text-white"
-        aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-        style={{ top: `calc(${SIDENAV_HEIGHT}px + 12px)` }}
-      >
-        {sidebarOpen ? <FaArrowLeft /> : <FaArrowRight />}
-      </button>
+  {}
 
       {}
       <BackgroundImage>
@@ -115,19 +108,7 @@ const StartPage = () => {
                 animationDelay: "0.1s"
               }}
             >
-              <div 
-                className="text-lg font-bold text-text shadow-lg rounded-3xl px-6 pt-4 pb-6 mb-4"
-                style={{
-                  background: 'rgba(var(--color-sidenav-primary-rgb), 0.5)',
-                  backdropFilter: 'blur(10px)',
-                  border: '2px solid var(--color-accent)'
-                }}
-              > 
-                <h1 className='text-base'>
-                  Logged in as [{user.role === 'staff' ? 'Staff' : 'Student'}] {user.name}
-                </h1>
-                {program && <h2 className='mt-1 text-sm'>Program: {program.program_name}</h2>}
-              </div>
+              {}
               
               <div className='text-center text-xl mt-2 font-bold mb-2'>Modules</div>
               
@@ -180,21 +161,28 @@ const StartPage = () => {
 
             {}
             <div className={`${sidebarOpen ? 'col-start-4 col-span-9' : 'col-start-1 col-span-12'} flex flex-col gap-3 mr-2 text-text h-full min-h-0`}>
-				<div 
-					className='flex items-center justify-center p-3 rounded-3xl animate-slide-up'
-					style={{
-						background: 'rgba(var(--color-sidenav-primary-rgb), 0.5)',
-						backdropFilter: 'blur(10px)',
-						border: '2px solid var(--color-accent)',
-						animationDelay: "0.2s"
-					}}
-				>
-					<h1 className='text-3xl font-bold truncate'>
-					  {selectedChannelId ? 
-						channels.find(ch => ch.channel_ID.toString() === selectedChannelId)?.channel_name : 
-						'Select a channel'}
-					</h1>
-				</div>
+              <div 
+                className='flex items-center justify-center p-3 rounded-3xl animate-slide-up relative'
+                style={{
+                  background: 'rgba(var(--color-sidenav-primary-rgb), 0.5)',
+                  backdropFilter: 'blur(10px)',
+                  border: '2px solid var(--color-accent)',
+                  animationDelay: "0.2s"
+                }}
+              >
+                <button
+                  onClick={() => setSidebarOpen(s => !s)}
+                  className="left-6 p-2 rounded-full bg-[rgba(var(--color-sidenav-primary-rgb),0.8)] border-2 border-[var(--color-accent)] text-white absolute"
+                  aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+                >
+                  {sidebarOpen ? <FaArrowLeft /> : <FaArrowRight />}
+                </button>
+                <h1 className='text-3xl font-bold truncate'>
+                  {selectedChannelId ? 
+                  channels.find(ch => ch.channel_ID.toString() === selectedChannelId)?.channel_name : 
+                  'Select a channel'}
+                </h1>
+              </div>
 				
 				<div className='rounded-3xl overflow-hidden p-3 flex flex-col animate-slide-up flex-grow min-h-0'
 					style={{
