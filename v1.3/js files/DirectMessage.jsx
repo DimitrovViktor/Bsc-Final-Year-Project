@@ -296,14 +296,7 @@ const DirectMessage = () => {
 		<BackgroundImage>
 		<div className="relative w-full h-screen animate-fade-in overflow-hidden">
 			{}
-			<button
-				onClick={() => setSidebarOpen(s => !s)}
-				className="absolute z-20 left-6 p-2 rounded-full bg-[rgba(var(--color-sidenav-primary-rgb),0.8)] border-2 border-[var(--color-accent)] text-white"
-				aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-				style={{ top: `calc(${SIDENAV_HEIGHT}px + 12px)` }}
-			>
-				{sidebarOpen ? <FaArrowLeft /> : <FaArrowRight />}
-			</button>
+			{}
 
 			{}
 			<div className='grid grid-rows-[96px_1fr] grid-cols-12 gap-4 relative z-10 h-screen w-full overflow-hidden'>
@@ -320,12 +313,7 @@ const DirectMessage = () => {
 					{}
 					<div className={`${sidebarOpen ? 'col-start-1 col-span-3' : 'hidden'} p-4 flex flex-col text-text shadow-2xl rounded-3xl overflow-hidden animate-slide-up h-full min-h-0`}
 						style={{ background: 'rgba(var(--color-sidenav-primary-rgb), 0.5)', backdropFilter: 'blur(10px)', border: '2px solid var(--color-accent)', animationDelay: "0.1s" }}>
-						<div className="text-lg font-bold text-text shadow-lg rounded-3xl px-6 pt-4 pb-6 mb-4"
-							style={{ background: 'rgba(var(--color-sidenav-primary-rgb), 0.5)', backdropFilter: 'blur(10px)', border: '2px solid var(--color-accent)' }}>
-							<h1 className='text-base'>
-								Logged in as [{currentUser.role === 'staff' ? 'Staff' : 'Student'}] {currentUser.name}
-							</h1>
-						</div>
+						{}
 
 						<div className='text-center text-xl mt-2 font-bold mb-2'>Direct Messages</div>
 
@@ -345,7 +333,14 @@ const DirectMessage = () => {
 
 					{}
 					<div className={`${sidebarOpen ? 'col-start-4 col-span-9' : 'col-start-1 col-span-12'} flex flex-col gap-3 mr-2 text-text h-full min-h-0`}>
-						<div className='flex items-center justify-center p-3 rounded-3xl animate-slide-up' style={{ background: 'rgba(var(--color-sidenav-primary-rgb), 0.5)', backdropFilter: 'blur(10px)', border: '2px solid var(--color-accent)', animationDelay: "0.2s" }}>
+						<div className='flex items-center justify-center p-3 rounded-3xl animate-slide-up relative' style={{ background: 'rgba(var(--color-sidenav-primary-rgb), 0.5)', backdropFilter: 'blur(10px)', border: '2px solid var(--color-accent)', animationDelay: "0.2s" }}>
+							<button
+								onClick={() => setSidebarOpen(s => !s)}
+								className="left-6 p-2 rounded-full bg-[rgba(var(--color-sidenav-primary-rgb),0.8)] border-2 border-[var(--color-accent)] text-white absolute"
+								aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+							>
+								{sidebarOpen ? <FaArrowLeft /> : <FaArrowRight />}
+							</button>
 							<h1 className='text-3xl font-bold truncate'>
 								{selectedUserId ? (users.find(u => u.user_ID === selectedUserId)?.name) : 'Select a user'}
 							</h1>
