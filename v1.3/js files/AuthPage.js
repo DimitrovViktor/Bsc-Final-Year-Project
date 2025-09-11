@@ -84,13 +84,13 @@ const AuthPage = ({ onLoginSuccess }) => {
 
     <BackgroundImage ignoreTheme={true}>
 
-      <div className="relative z-10 w-full">
+      <div className="relative z-10 w-full flex items-center justify-center min-h-screen p-6">
 
         <form 
 
           onSubmit={handleSubmit} 
 
-          className="rounded-3xl px-8 pt-6 pb-8 mb-4 border-2 border-[var(--color-accent)] backdrop-blur-sm animate-fade-in"
+          className="rounded-3xl px-6 pt-6 pb-6 mb-4 border-2 border-[var(--color-accent)] backdrop-blur-sm animate-fade-in w-full max-w-md mx-auto"
 
           style={{
 
