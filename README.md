@@ -50,3 +50,24 @@ Users can send each other private messages. They are also allowed to edit or del
  - Custom theme creation - users can create custom themes and adjust every single color and the background image of the application
 
 ---
+
+### Features in progress:
+ - Adding Functional profiles - full profiles with profile pictures, names, status (online, offline, away, etc.)
+ - Notifications section with clickable notifications
+ - Do not Disturb status - automatically disable notification popups
+ - Clickabe notification popups - they take the user to the exact message sent by another user 
+ - Main page changes:
+    - Display avatar and status next to names in messages
+ - Direct Messages page changes:
+    - Display avatar and status next to names in messages
+    - Display avatar and status next to names in left section
+ - Settings changes:
+    - Notifications button (enable/disable)
+
+### Bug fixes in progress:
+ - Missing colors in authentication page - login and switch to staff/student buttons are missing colors, the background of the login window is also missing
+ - Missing colors on login - currently users have to go to the settings page for the theme to apply, before that some areas are transparent
+
+### Potential features for the future:
+ - Voicechat for each group
+ - Voicechat for direct messages
