@@ -64,10 +64,6 @@ Users can send each other private messages. They are also allowed to edit or del
  - Settings changes:
     - Notifications button (enable/disable)
 
-### Bug fixes in progress:
- - Missing colors in authentication page - login and switch to staff/student buttons are missing colors, the background of the login window is also missing
- - Missing colors on login - currently users have to go to the settings page for the theme to apply, before that some areas are transparent
-
 ### Potential features for the future:
  - Voicechat for each group
  - Voicechat for direct messages
