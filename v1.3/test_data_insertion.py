@@ -111,7 +111,7 @@ projects = [
 
 results = [
     # individual_grade, contribution_score, student_ID, project_ID
-    (90, 20, 1, 1),  # Assuming '90' is the individual_grade, '20' is the contribution_score
+    (90, 20, 1, 1),  # '90' is the individual_grade, '20' is the contribution_score
     (75, 25, 1, 2),  # Student 1
     (85, 20, 1, 3),
         
@@ -195,9 +195,8 @@ group_members = [
     (30, 54),
 ]
 
-# test data for private_messages using new unified user_IDs
 private_messages = [
-    # Assuming user_IDs as mapped above: Student 1 (ID 1), Student 2 (ID 2), Staff 1 (ID 3), Staff 2 (ID 4)
+    # Student 1 (ID 1), Student 2 (ID 2), Staff 1 (ID 3), Staff 2 (ID 4)
     # sender_ID, receiver_ID, message_content, message_timestamp, message_read
     (1, 2, 'Student to student 1 to 2.', '2024-04-01 10:00:00', False),
     (2, 1, 'Student to student 2 to 1', '2024-04-01 10:05:00', False),
@@ -250,6 +249,10 @@ with conn:
     cursor.executemany('INSERT INTO tbl_group_members (group_ID, student_ID) VALUES (?, ?)', group_members)
     cursor.executemany('''INSERT INTO tbl_private_messages (sender_ID, receiver_ID, message_content, message_timestamp, message_read) VALUES (?, ?, ?, ?, ?)''', private_messages)
     cursor.executemany('INSERT INTO tbl_user (student_ID, staff_ID) VALUES (?, ?)', user_mappings)
+    cursor.execute("UPDATE tbl_user SET profile_image = 'link_to_placeholder_image', status='online', last_seen=datetime('now') WHERE user_ID = 1")
+    cursor.execute("UPDATE tbl_user SET profile_image = 'link_to_placeholder_image', status='away', last_seen=datetime('now') WHERE user_ID = 2")
+    cursor.execute("UPDATE tbl_user SET profile_image = 'link_to_placeholder_image', status='dnd', last_seen=datetime('now') WHERE user_ID = 11")
+    cursor.execute("UPDATE tbl_user SET profile_image = 'link_to_placeholder_image', status='offline', last_seen=datetime('now') WHERE user_ID = 12")
 conn.commit()  
 conn.close()  
 
