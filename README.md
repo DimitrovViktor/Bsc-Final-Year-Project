@@ -52,8 +52,8 @@ Users can send each other private messages. They are also allowed to edit or del
 ---
 
 ### Features in progress:
- - Adding Functional profiles - full profiles with profile pictures, names, status (online, offline, away, etc.)
- - Notifications section with clickable notifications
+ - Adding Functional profiles - full profiles with profile pictures, names, status (online, offline, away, etc.) (added backend functionality)
+ - Notifications section with clickable notifications (added backend functionality)
  - Do not Disturb status - automatically disable notification popups
  - Clickabe notification popups - they take the user to the exact message sent by another user 
  - Main page changes:
