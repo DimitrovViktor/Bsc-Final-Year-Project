@@ -12,6 +12,8 @@ from flask import request
 import os
 import json
 import sqlite3
+from typing import Optional
+import uuid
 
 app = Flask(__name__)
 CORS(app)
@@ -250,27 +252,203 @@ def get_channels_for_module(module_ID):
 # Use student details to check if student exists
 @app.route('/students/<int:student_ID>/info', methods=['GET'])
 def get_student_info(student_ID):
-    print(f"Fetching info for student ID: {student_ID}")
+    """Legacy student info endpoint expanded to include unified user profile hydration fields."""
     conn = get_db_connection()
-    student = conn.execute('SELECT * FROM tbl_students WHERE student_ID = ?', (student_ID,)).fetchone()
-    conn.close()
-    if student:
-        print(f"Student found: {student['student_username']}")
-        return jsonify({"username": student["student_username"]}), 200
-    else:
-        print("Student not found")
-        return jsonify({"error": "Student not found"}), 404
+    try:
+        row = conn.execute('''
+            SELECT s.student_ID, s.student_username, s.student_name,
+                   u.user_ID, u.profile_image, COALESCE(u.status,'offline') as status, u.last_seen
+            FROM tbl_students s
+            LEFT JOIN tbl_user u ON u.student_ID = s.student_ID
+            WHERE s.student_ID = ?
+        ''', (student_ID,)).fetchone()
+        if not row:
+            return jsonify({"error": "Student not found"}), 404
+        d = dict(row)
+        if not d.get('profile_image'):
+            initials = (d.get('student_name') or d.get('student_username') or 'U').split()[0][0:1].upper()
+            d['profile_image'] = f"https://via.placeholder.com/150/1e293b/ffffff?text={initials}"
+        return jsonify({
+            'username': d['student_username'],
+            'display_name': d.get('student_name') or d['student_username'],
+            'student_name': d.get('student_name'),
+            'student_ID': d['student_ID'],
+            'user_ID': d.get('user_ID'),
+            'profile_image': d.get('profile_image'),
+            'status': d.get('status'),
+            'last_seen': d.get('last_seen'),
+            'role': 'student'
+        }), 200
+    finally:
+        conn.close()
 
 # Use staff details to check if staff exists
 @app.route('/staff/<int:staff_id>/info', methods=['GET'])
 def get_staff_info(staff_id):
+    """Legacy staff info endpoint expanded for unified hydration."""
     conn = get_db_connection()
-    staff = conn.execute('SELECT * FROM tbl_staff WHERE staff_ID = ?', (staff_id,)).fetchone()
-    conn.close()
-    if staff:
-        return jsonify({"username": staff["staff_username"]}), 200
-    else:
-        return jsonify({"error": "Staff not found"}), 404
+    try:
+        row = conn.execute('''
+            SELECT st.staff_ID, st.staff_username, st.staff_name,
+                   u.user_ID, u.profile_image, COALESCE(u.status,'offline') as status, u.last_seen
+            FROM tbl_staff st
+            LEFT JOIN tbl_user u ON u.staff_ID = st.staff_ID
+            WHERE st.staff_ID = ?
+        ''', (staff_id,)).fetchone()
+        if not row:
+            return jsonify({"error": "Staff not found"}), 404
+        d = dict(row)
+        if not d.get('profile_image'):
+            initials = (d.get('staff_name') or d.get('staff_username') or 'S').split()[0][0:1].upper()
+            d['profile_image'] = f"https://via.placeholder.com/150/1e293b/ffffff?text={initials}"
+        return jsonify({
+            'username': d['staff_username'],
+            'display_name': d.get('staff_name') or d['staff_username'],
+            'staff_name': d.get('staff_name'),
+            'staff_ID': d['staff_ID'],
+            'user_ID': d.get('user_ID'),
+            'profile_image': d.get('profile_image'),
+            'status': d.get('status'),
+            'last_seen': d.get('last_seen'),
+            'role': 'staff'
+        }), 200
+    finally:
+        conn.close()
+
+# ================= PROFILE & STATUS =====================
+def fetch_user_profile(user_id: int) -> Optional[dict]:
+    conn = get_db_connection()
+    try:
+        row = conn.execute('''
+            SELECT u.user_ID, u.profile_image, u.status, u.last_seen,
+                   s.student_ID, s.student_name, st.staff_ID, st.staff_name,
+                   CASE WHEN s.student_ID IS NOT NULL THEN 'student' ELSE 'staff' END AS role
+            FROM tbl_user u
+            LEFT JOIN tbl_students s ON u.student_ID = s.student_ID
+            LEFT JOIN tbl_staff st ON u.staff_ID = st.staff_ID
+            WHERE u.user_ID = ?
+        ''', (user_id,)).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        if not d.get('profile_image'):
+            initials = (d.get('student_name') or d.get('staff_name') or 'U').split()[0][0:1].upper()
+            d['profile_image'] = f"https://via.placeholder.com/150/1e293b/ffffff?text={initials}"  # for placeholder tests
+        return d
+    finally:
+        conn.close()
+
+@app.route('/users/<int:user_id>/profile', methods=['GET'])
+def get_user_profile(user_id):
+    profile = fetch_user_profile(user_id)
+    if not profile:
+        return jsonify({'error': 'User not found'}), 404
+    return jsonify(profile), 200
+
+@app.route('/users/<int:user_id>/profile', methods=['PATCH'])
+def update_user_profile(user_id):
+    data = request.json or {}
+    allowed_statuses = {"online", "offline", "away", "dnd", "invisible"}
+    updates = []
+    params = []
+    # Basic auth guard: require header X-User-ID to match user_id
+    requester = request.headers.get('X-User-ID')
+    if not requester or str(requester) != str(user_id):
+        return jsonify({'error': 'Unauthorized'}), 401
+    if 'status' in data:
+        new_status = data['status']
+        if new_status not in allowed_statuses:
+            return jsonify({'error': 'Invalid status'}), 400
+        updates.append('status = ?')
+        params.append(new_status)
+    if 'profile_image' in data:
+        updates.append('profile_image = ?')
+        params.append(data['profile_image'])
+    if not updates:
+        return jsonify({'error': 'No valid fields supplied'}), 400
+    params.append(user_id)
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(f"UPDATE tbl_user SET {', '.join(updates)} WHERE user_ID = ?", params)
+        conn.commit()
+    finally:
+        conn.close()
+    if 'status' in data:
+        # Update last_seen when user explicitly changes status (except invisible retains last last_seen)
+        conn = get_db_connection()
+        try:
+            if data['status'] != 'invisible':
+                conn.execute('UPDATE tbl_user SET last_seen = ? WHERE user_ID = ?', (datetime.utcnow().isoformat(), user_id))
+            conn.commit()
+        finally:
+            conn.close()
+        socketio.emit('status_update', {'user_ID': user_id, 'status': data['status']})
+    return jsonify({'success': True}), 200
+
+@app.route('/users/<int:user_id>/profile/image', methods=['POST'])
+def upload_profile_image(user_id):
+    # Auth guard
+    requester = request.headers.get('X-User-ID')
+    if not requester or str(requester) != str(user_id):
+        return jsonify({'error': 'Unauthorized'}), 401
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    # Validation: type & size & dimensions
+    allowed_mimes = {'image/png','image/jpeg','image/jpg','image/gif','image/webp'}
+    file.seek(0, os.SEEK_END)
+    size = file.tell()
+    file.seek(0)
+    MAX_BYTES = 2 * 1024 * 1024  # 2MB
+    if size > MAX_BYTES:
+        return jsonify({'error': 'File too large (max 2MB)'}), 400
+    # Basic MIME type check
+    lower = file.filename.lower()
+    if not any(lower.endswith(ext) for ext in ['.png','.jpg','.jpeg','.gif','.webp']):
+        return jsonify({'error': 'Unsupported file type'}), 400
+    # Dimension check using Pillow
+    try:
+        from PIL import Image
+        img = Image.open(file.stream)
+        width, height = img.size
+        if width > 1024 or height > 1024:
+            return jsonify({'error': 'Image dimensions too large (max 1024x1024)'}), 400
+        file.stream.seek(0)
+    except Exception:
+        file.stream.seek(0)
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        _, ext = os.path.splitext(filename)
+        # random uuid-based filename to avoid collisions and enable clean replacement
+        filename = f"avatar_{uuid.uuid4().hex}{ext.lower()}"
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        version = int(datetime.utcnow().timestamp())
+        file_url = request.host_url.rstrip('/') + url_for('uploaded_file', filename=filename) + f"?v={version}"
+        conn = get_db_connection()
+        try:
+            old = conn.execute('SELECT profile_image FROM tbl_user WHERE user_ID = ?', (user_id,)).fetchone()
+            conn.execute('UPDATE tbl_user SET profile_image = ?, last_seen = ? WHERE user_ID = ?', (file_url, datetime.utcnow().isoformat(), user_id))
+            conn.commit()
+            if old and old['profile_image']:
+                try:
+                    old_url = old['profile_image'].split('?')[0]
+                    seg = old_url.rsplit('/uploads/', 1)
+                    if len(seg) == 2:
+                        old_name = seg[1]
+                        old_path = os.path.join(app.config['UPLOAD_FOLDER'], old_name)
+                        if os.path.isfile(old_path):
+                            os.remove(old_path)
+                except Exception as del_err:
+                    print(f"Avatar deletion warning: {del_err}")
+        finally:
+            conn.close()
+        socketio.emit('profile_image_update', {'user_ID': user_id, 'profile_image': file_url})
+        return jsonify({'success': True, 'profile_image': file_url}), 201
+    return jsonify({'error': 'Upload failed'}), 400
 
 ###############################################################################################
 # Socket Setup
@@ -278,10 +456,45 @@ def get_staff_info(staff_id):
 @socketio.on('connect')
 def handle_connect():
     print('Client connected')
+    user_id = request.args.get('user_ID')
+    if user_id:
+        try:
+            conn = get_db_connection()
+            conn.execute("UPDATE tbl_user SET status = 'online', last_seen = ? WHERE user_ID = ?", (datetime.utcnow().isoformat(), user_id))
+            conn.commit()
+        finally:
+            conn.close()
+        socketio.emit('status_update', {'user_ID': int(user_id), 'status': 'online'})
 
 @socketio.on('disconnect')
 def handle_disconnect():
     print('Client disconnected')
+    user_id = request.args.get('user_ID')
+    if user_id:
+        try:
+            conn = get_db_connection()
+            conn.execute("UPDATE tbl_user SET status = CASE WHEN status != 'invisible' THEN 'offline' ELSE status END, last_seen = ? WHERE user_ID = ?", (datetime.utcnow().isoformat(), user_id))
+            conn.commit()
+            row = conn.execute('SELECT status FROM tbl_user WHERE user_ID = ?', (user_id,)).fetchone()
+            if row:
+                socketio.emit('status_update', {'user_ID': int(user_id), 'status': row['status']})
+        finally:
+            conn.close()
+
+@socketio.on('set_status')
+def handle_set_status(data):
+    user_id = data.get('user_ID')
+    status = data.get('status')
+    allowed = {"online", "offline", "away", "dnd", "invisible"}
+    if not user_id or status not in allowed:
+        return
+    conn = get_db_connection()
+    try:
+        conn.execute('UPDATE tbl_user SET status = ? WHERE user_ID = ?', (status, user_id))
+        conn.commit()
+    finally:
+        conn.close()
+    socketio.emit('status_update', {'user_ID': user_id, 'status': status})
 
 # Message handler for channels
 @socketio.on('send_message')
@@ -289,7 +502,6 @@ def handle_message(data):
     print(f"Received message: {data}")
     conn = get_db_connection()
     try:
-        # Insert the message into the database
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO tbl_messages (message_content, message_timestamp, channel_ID, student_ID, staff_ID)
@@ -297,19 +509,46 @@ def handle_message(data):
         ''', (data['content'], datetime.now().strftime("%Y-%m-%d %H:%M:%S"), data['channel'], data.get('student_ID'), data.get('staff_ID')))
         conn.commit()
         message_id = cursor.lastrowid
-        data['message_ID'] = message_id
 
-        # Determine whether to call user a student or staff based on username
+        # Fetch display info (single join)
+        info = None
         if data.get('student_ID'):
-            user = conn.execute('SELECT student_username FROM tbl_students WHERE student_ID = ?', (data['student_ID'],)).fetchone()
-            if user:
-                data['username'] = "Student " + user['student_username']
+            info = conn.execute('''
+                SELECT s.student_name AS name, u.profile_image, u.status, 'student' as role
+                FROM tbl_students s JOIN tbl_user u ON s.student_ID = u.student_ID
+                WHERE s.student_ID = ?
+            ''', (data['student_ID'],)).fetchone()
         elif data.get('staff_ID'):
-            user = conn.execute('SELECT staff_username FROM tbl_staff WHERE staff_ID = ?', (data['staff_ID'],)).fetchone()
-            if user:
-                data['username'] = "Staff " + user['staff_username']
+            info = conn.execute('''
+                SELECT st.staff_name AS name, u.profile_image, u.status, 'staff' as role
+                FROM tbl_staff st JOIN tbl_user u ON st.staff_ID = u.staff_ID
+                WHERE st.staff_ID = ?
+            ''', (data['staff_ID'],)).fetchone()
+        display_name = 'Unknown'
+        profile_image = None
+        status = 'offline'
+        role = 'unknown'
+        if info:
+            display_name = info['name']
+            profile_image = info['profile_image']
+            status = info['status'] or 'offline'
+            role = info['role']
+        if not profile_image:
+            initials = (display_name or 'U').split()[0][0:1].upper()
+            profile_image = f"https://via.placeholder.com/150/1e293b/ffffff?text={initials}"
 
-        emit('receive_message', data, broadcast=True)
+        emit('receive_message', {
+            'message_ID': message_id,
+            'channel': data['channel'],
+            'student_ID': data.get('student_ID'),
+            'staff_ID': data.get('staff_ID'),
+            'content': data['content'],
+            'timestamp': datetime.utcnow().isoformat(),
+            'display_name': display_name,
+            'profile_image': profile_image,
+            'status': status,
+            'role': role
+        }, broadcast=True)
     except Exception as e:
         print(f"Failed to insert message: {str(e)}")
     finally:
@@ -733,13 +972,22 @@ def get_all_users():
     try:
         query = '''
         SELECT u.user_ID as user_ID, COALESCE(s.student_name, st.staff_name) as name, 
-               CASE WHEN s.student_ID IS NOT NULL THEN 'student' ELSE 'staff' END as role
+               CASE WHEN s.student_ID IS NOT NULL THEN 'student' ELSE 'staff' END as role,
+               COALESCE(u.profile_image, '') as profile_image,
+               COALESCE(u.status, 'offline') as status,
+               COALESCE(u.last_seen, '') as last_seen
         FROM tbl_user u
         LEFT JOIN tbl_students s ON u.student_ID = s.student_ID
         LEFT JOIN tbl_staff st ON u.staff_ID = st.staff_ID
         '''
         users = conn.execute(query).fetchall()
-        users_list = [dict(user) for user in users]
+        users_list = []
+        for user in users:
+            du = dict(user)
+            if not du.get('profile_image'):
+                initials = (du.get('name') or 'U').split()[0][0:1].upper()
+                du['profile_image'] = f"https://via.placeholder.com/150/1e293b/ffffff?text={initials}"  # placeholder tests
+            users_list.append(du)
         return jsonify(users_list), 200
     except Exception as e:
         print(f"An error occurred: {e}") 
@@ -751,7 +999,7 @@ def get_all_users():
 # Setup for file uploads
 ###############################################################################################
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'Uploads')
-# ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'} # Optional file restriction
+# ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'} # file restriction
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -760,7 +1008,7 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 def allowed_file(filename):
-    # return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS # Optional file restriction
+    # return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS # file restriction
     return True
 
 # Uploads each file and generates web-accessible URL
