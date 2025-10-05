@@ -3,15 +3,18 @@ import axios from 'axios';
 import io from 'socket.io-client';
 import moment from 'moment';
 import { FaTelegramPlane, FaPaperclip, FaTimesCircle, FaEdit, FaTrash, FaArrowLeft, FaArrowRight, FaDownload, FaTimes } from "react-icons/fa";
-import SideNav from './SideNav';
+import Nav from './SideNav';
 import BackgroundImage from './BackgroundImage';
+import { useNotifications } from './NotificationsContext';
 
 const API_BASE_URL = 'http://localhost:5000';
 const SIDENAV_HEIGHT = 96;
 
 const DirectMessage = () => {
+	const notifications = useNotifications();
 	const [socket, setSocket] = useState(null);
 	const [users, setUsers] = useState([]);
+	const usersRef = useRef({});
 	const [selectedUserId, setSelectedUserId] = useState(null);
 	const [currentUser] = useState(JSON.parse(localStorage.getItem('user')) || {});
 	const [messages, setMessages] = useState([]);
@@ -42,9 +45,31 @@ const DirectMessage = () => {
 
 	useEffect(() => {
 		axios.get(`${API_BASE_URL}/users`)
-			.then(response => setUsers(response.data))
+			.then(response => {
+				setUsers(response.data);
+				response.data.forEach(u => { usersRef.current[u.user_ID] = u; });
+			})
 			.catch(err => console.error('Failed to fetch users', err));
 	}, []);
+
+	useEffect(() => {
+		if (!socket) return;
+		const handleStatus = (data) => {
+			if (usersRef.current[data.user_ID]) {
+				usersRef.current[data.user_ID].status = data.status;
+				setUsers(prev => prev.map(u => u.user_ID === data.user_ID ? { ...u, status: data.status } : u));
+			}
+		};
+		const handleAvatar = (data) => {
+			if (usersRef.current[data.user_ID]) {
+				usersRef.current[data.user_ID].profile_image = data.profile_image;
+				setUsers(prev => prev.map(u => u.user_ID === data.user_ID ? { ...u, profile_image: data.profile_image } : u));
+			}
+		};
+		socket.on('status_update', handleStatus);
+		socket.on('profile_image_update', handleAvatar);
+		return () => { socket.off('status_update', handleStatus); socket.off('profile_image_update', handleAvatar); };
+	}, [socket]);
 
 
 	const fetchMessages = useCallback(async () => {
@@ -69,10 +94,10 @@ const DirectMessage = () => {
 		const addMessage = (newMessage) => {
 			const senderId = newMessage.sender_ID ?? newMessage.sender_user_id;
 			const receiverId = newMessage.receiver_ID ?? newMessage.receiver_user_id;
-			if (
-				(senderId === currentUser.user_ID && receiverId === selectedUserId) ||
-				(receiverId === currentUser.user_ID && senderId === selectedUserId)
-			) {
+			const isActiveConversation = (senderId === currentUser.user_ID && receiverId === selectedUserId) || (receiverId === currentUser.user_ID && senderId === selectedUserId);
+			const currentPage = typeof window !== 'undefined' ? window.__currentAppPage : null;
+			if (isActiveConversation && currentPage === 'direct') {
+
 				const formatted = {
 					...newMessage,
 					sender_ID: senderId,
@@ -84,6 +109,22 @@ const DirectMessage = () => {
 					if (prev.some(m => m.message_ID === formatted.message_ID)) return prev;
 					return [...prev, formatted];
 				});
+			} else if (notifications && receiverId === currentUser.user_ID) {
+
+				const peerId = senderId === currentUser.user_ID ? receiverId : senderId;
+				const channelKey = `dm_${[currentUser.user_ID, peerId].sort().join('_')}`;
+				const rawContent = newMessage.message_content || newMessage.content || '';
+				const previewBase = rawContent.split('||')[0];
+				const preview = previewBase ? previewBase.slice(0,140) : '[attachment]';
+				const from = newMessage.sender_name || usersRef.current[senderId]?.name || 'User';
+				notifications.addNotification({
+					channel: channelKey,
+					message_ID: newMessage.message_ID,
+					from,
+					preview,
+					timestamp: newMessage.message_timestamp || newMessage.timestamp || new Date().toISOString(),
+					avatar: usersRef.current[senderId]?.profile_image
+				}, true);
 			}
 		};
 
@@ -132,6 +173,29 @@ const DirectMessage = () => {
 	useEffect(() => {
 		messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
 	}, [messages]);
+
+
+	useEffect(() => {
+		const handler = (e) => {
+			const { peerId, messageId } = e.detail || {};
+			if (peerId) {
+				setSelectedUserId(peerId);
+
+				setTimeout(() => {
+					if (messageId) {
+						const el = document.querySelector(`[data-msg-id="${messageId}"]`);
+						if (el) {
+							el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+							el.classList.add('ring-4','ring-[var(--color-accent)]');
+							setTimeout(()=>{ el.classList.remove('ring-4','ring-[var(--color-accent)]'); }, 2000);
+						}
+					}
+				}, 150);
+			}
+		};
+		window.addEventListener('jumpToDirectMessage', handler);
+		return () => window.removeEventListener('jumpToDirectMessage', handler);
+	}, []);
 
 	useEffect(() => {
 		fetchMessages();
@@ -302,7 +366,7 @@ const DirectMessage = () => {
 			<div className='grid grid-rows-[96px_1fr] grid-cols-12 gap-4 relative z-10 h-screen w-full overflow-hidden'>
 				{}
 				<div className="row-start-1 row-span-1 col-start-1 col-span-12">
-					<SideNav onLogout={() => { localStorage.clear(); window.location.reload(); }} visible={sideNavVisible} toggleVisibility={() => setSideNavVisible(v => !v)} inGrid={true} height={SIDENAV_HEIGHT} />
+					<Nav onLogout={() => { localStorage.clear(); window.location.reload(); }} visible={sideNavVisible} toggleVisibility={() => setSideNavVisible(v => !v)} inGrid={true} height={SIDENAV_HEIGHT} />
 				</div>
 
 				{}
@@ -320,13 +384,21 @@ const DirectMessage = () => {
 						{}
 						<div className='flex flex-col flex-grow overflow-y-auto rounded-3xl mb-3 min-h-0' style={{ background: 'rgba(var(--color-sidenav-primary-rgb), 0.6)', backdropFilter: 'blur(10px)', border: '2px solid var(--color-accent)' }}>
 							<div className="flex flex-col gap-3 p-2">
-								{users.map(user => (
-									<button key={user.user_ID} onClick={() => { setSelectedUserId(user.user_ID); setMessages([]); }}
-										className={`text-base py-3 px-2 flex items-center justify-center rounded-full transition-all duration-300 ease-out cursor-pointer w-full group ${selectedUserId === user.user_ID ? 'bg-[var(--color-accent)] text-white' : 'text-text hover:bg-[var(--color-accent)] hover:text-white'}`}
-										style={{ background: selectedUserId === user.user_ID ? 'var(--color-accent)' : 'rgba(var(--color-sidenav-primary-rgb), 0.6)', color: selectedUserId === user.user_ID ? 'white' : 'var(--color-text)', border: '2px solid var(--color-accent)' }}>
-										<span className="transition-all duration-300 group-hover:font-bold group-hover:tracking-wide">{user.name}</span>
-									</button>
-								))}
+								{users.map(user => {
+									const status = user.status || 'offline';
+									const color = status==='online'? 'bg-green-500': status==='away'? 'bg-yellow-400': status==='dnd'? 'bg-red-500': status==='invisible'? 'bg-gray-400':'bg-gray-500';
+									return (
+										<button key={user.user_ID} onClick={() => { setSelectedUserId(user.user_ID); setMessages([]); }}
+											className={`text-base py-2 px-3 flex items-center rounded-full transition-all duration-300 ease-out cursor-pointer w-full group ${selectedUserId === user.user_ID ? 'bg-[var(--color-accent)] text-white' : 'text-text hover:bg-[var(--color-accent)] hover:text-white'}`}
+											style={{ background: selectedUserId === user.user_ID ? 'var(--color-accent)' : 'rgba(var(--color-sidenav-primary-rgb), 0.6)', color: selectedUserId === user.user_ID ? 'white' : 'var(--color-text)', border: '2px solid var(--color-accent)' }}>
+											<div className="relative w-10 h-10 mr-3 flex-shrink-0">
+												<img src={user.profile_image || 'https://via.placeholder.com/80?text=U'} alt="av" className="w-10 h-10 rounded-full object-cover border-2 border-[var(--color-accent)]" />
+												<span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ring-2 ring-[var(--color-sidenav-primary)] ${color}`}></span>
+											</div>
+											<span className="flex-1 text-left transition-all duration-300 group-hover:font-bold group-hover:tracking-wide">{user.name}</span>
+										</button>
+									);
+								})}
 							</div>
 						</div>
 					</div>
@@ -361,10 +433,12 @@ const DirectMessage = () => {
 										<div key={idx} className={`message-bubble my-3 p-4 flex flex-col rounded-2xl transition-all duration-300 ${isCurrentUser ? 'bg-[rgba(var(--color-accent-rgb),0.2)] border-l-4 border-[var(--color-accent)] ml-10' : 'bg-[rgba(var(--color-tertiary-rgb),0.4)] border-l-4 border-[var(--color-secondary)] mr-10' } animate-slide-up`} style={{ animationDelay: `${idx * 0.05}s` }}>
 											<div className="message-header flex justify-between items-center mb-2">
 												<div className="flex items-center">
-													<span className="px-3 py-1 bg-blue-500 text-white rounded-full text-sm font-bold">
-														{msg.sender_ID === currentUser.user_ID ? 'You' : 'User'}
-													</span>
-													<span className="ml-2 font-semibold">{msg.sender_name}</span>
+													<div className="relative w-10 h-10 mr-3">
+														<img src={(usersRef.current[msg.sender_ID]?.profile_image)||'https://via.placeholder.com/80?text=U'} alt="av" className="w-10 h-10 rounded-full object-cover border-2 border-[var(--color-accent)]" />
+														<span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ring-2 ring-[var(--color-primary)] ${(() => { const st = usersRef.current[msg.sender_ID]?.status || 'offline'; return st==='online'?'bg-green-500': st==='away'?'bg-yellow-400': st==='dnd'?'bg-red-500': st==='invisible'?'bg-gray-400':'bg-gray-500'; })()}`}></span>
+													</div>
+													<span className="px-3 py-1 bg-blue-500 text-white rounded-full text-xs font-bold mr-2">{msg.sender_ID === currentUser.user_ID ? 'You' : 'User'}</span>
+													<span className="font-semibold">{msg.sender_name}</span>
 												</div>
 												<div className="flex items-center">
 													<span className="text-sm text-[var(--color-timestamp)]">{msg.timestamp}</span>
