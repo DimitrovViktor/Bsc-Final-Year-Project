@@ -4,14 +4,16 @@ import axios from 'axios';
 import { CiLogout, CiSettings } from "react-icons/ci";
 import { AiOutlineUsergroupAdd } from "react-icons/ai";
 import { FaChevronUp, FaChevronDown, FaUserCircle, FaBell } from "react-icons/fa";
+import Profile from './Profile';
+import { NotificationsPanel, useNotifications } from './NotificationsContext';
 import { GoCommentDiscussion } from 'react-icons/go';
 
-const SideNav = ({ setPage, onLogout, visible = true, toggleVisibility, inGrid = false, height = 96 }) => {
-  // fallback to global setter if page setter not passed
+const Nav = ({ setPage, onLogout, visible = true, toggleVisibility, inGrid = false, height = 96 }) => {
+
   const navigate = (pageValue) => {
     if (setPage && typeof setPage === 'function') return setPage(pageValue);
     if (typeof window !== 'undefined' && typeof window.__setAppPage === 'function') return window.__setAppPage(pageValue);
-    // noop otherwise
+
   };
 
   const containerCommon = `m-0 flex items-center transition-all duration-300 rounded-[60px] overflow-visible`;
@@ -21,6 +23,8 @@ const SideNav = ({ setPage, onLogout, visible = true, toggleVisibility, inGrid =
   const [currentUser, setCurrentUser] = useState({});
   const [showProfile, setShowProfile] = useState(false);
   const [programName, setProgramName] = useState('');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationsCtx = useNotifications();
 
   const API_BASE_URL = 'http://localhost:5000';
 
@@ -29,6 +33,15 @@ const SideNav = ({ setPage, onLogout, visible = true, toggleVisibility, inGrid =
       try {
         const u = JSON.parse(localStorage.getItem('user') || '{}');
         setCurrentUser(u || {});
+
+        if (u?.user_ID) {
+          axios.get(`${API_BASE_URL}/users/${u.user_ID}/profile`).then(resp => {
+            const prof = resp.data || {};
+            const merged = { ...u, profile_image: prof.profile_image || u.profile_image, status: prof.status || u.status };
+            setCurrentUser(merged);
+            localStorage.setItem('user', JSON.stringify(merged));
+          }).catch(()=>{});
+        }
         if (u && (u.program_ID || u.programId)) {
           const pid = u.program_ID || u.programId;
           axios.get(`${API_BASE_URL}/programs`).then(resp => {
@@ -51,8 +64,12 @@ const SideNav = ({ setPage, onLogout, visible = true, toggleVisibility, inGrid =
     {}
     <div className="absolute left-8 top-1/2 transform -translate-y-1/2">
           <div className="inline-flex items-center p-2 rounded-[40px]" style={{ background: 'rgba(var(--color-sidenav-primary-rgb), 0.8)', border: '3px solid var(--color-accent)', boxShadow: '0 10px 30px rgba(var(--color-accent-rgb),0.35)', gap: '8px' }}>
-      <button onClick={() => setShowProfile(true)} className="flex items-center justify-center h-12 w-12 rounded-full bg-[rgba(var(--color-tertiary-rgb),0.7)] text-accent shadow-md hover:bg-[rgba(var(--color-accent-rgb),0.4)] transition-all duration-200" title="Profile">
-              <FaUserCircle size={28} />
+      <button onClick={() => setShowProfile(true)} className="flex items-center justify-center h-12 w-12 rounded-full bg-[rgba(var(--color-tertiary-rgb),0.7)] text-accent shadow-md hover:bg-[rgba(var(--color-accent-rgb),0.4)] transition-all duration-200 overflow-hidden" title="Profile">
+              {currentUser.profile_image ? (
+                <img src={currentUser.profile_image} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                <FaUserCircle size={28} />
+              )}
             </button>
             <div className="text-left ml-2">
               <div className="text-sm font-bold text-text">{currentUser.username || currentUser.name || 'Guest'}</div>
@@ -67,8 +84,13 @@ const SideNav = ({ setPage, onLogout, visible = true, toggleVisibility, inGrid =
             <div className="text-left mr-3">
               <div className="text-sm font-bold text-text">Notifications</div>
             </div>
-            <button onClick={() => {}} className="flex items-center justify-center h-12 w-12 rounded-full bg-[rgba(var(--color-tertiary-rgb),0.7)] text-accent shadow-md hover:bg-[rgba(var(--color-accent-rgb),0.4)] transition-all duration-200" title="Notifications">
+            <button onClick={() => setShowNotifications(s=>!s)} className="relative flex items-center justify-center h-12 w-12 rounded-full bg-[rgba(var(--color-tertiary-rgb),0.7)] text-accent shadow-md hover:bg-[rgba(var(--color-accent-rgb),0.4)] transition-all duration-200" title="Notifications">
               <FaBell size={20} />
+              {!!notificationsCtx && notificationsCtx.items.some(i=>i.unreadCount>0) && (
+                <span className="absolute -top-1 -right-1 bg-[var(--color-accent)] text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                  {notificationsCtx.items.reduce((a,b)=>a+(b.unreadCount>0?1:0),0)}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -87,10 +109,10 @@ const SideNav = ({ setPage, onLogout, visible = true, toggleVisibility, inGrid =
         >
 
           <div className="inline-flex items-center">
-            <SideNavIcon icon={<AiOutlineUsergroupAdd size="40" />} onClick={() => navigate('start')} />
-            <SideNavIcon icon={<GoCommentDiscussion size="33" />} onClick={() => navigate('direct')} />
-            <SideNavIcon icon={<CiSettings size="40" />} onClick={() => navigate('settings')} />
-            <SideNavIcon icon={<CiLogout size="35" />} onClick={onLogout} extraClasses="hover:bg-red-500 hover:text-white" />
+            <NavIcon icon={<AiOutlineUsergroupAdd size="40" />} onClick={() => navigate('start')} />
+            <NavIcon icon={<GoCommentDiscussion size="33" />} onClick={() => navigate('direct')} />
+            <NavIcon icon={<CiSettings size="40" />} onClick={() => navigate('settings')} />
+            <NavIcon icon={<CiLogout size="35" />} onClick={onLogout} extraClasses="hover:bg-red-500 hover:text-white" />
           </div>
         </div>
       </div>
@@ -102,19 +124,12 @@ const SideNav = ({ setPage, onLogout, visible = true, toggleVisibility, inGrid =
           <div className="relative z-[10000] w-full max-w-sm p-6 rounded-2xl" onClick={(e) => e.stopPropagation()} style={{ background: 'rgba(var(--color-sidenav-primary-rgb), 0.95)', border: '2px solid var(--color-accent)', boxShadow: '0 10px 40px rgba(0,0,0,0.6)' }}>
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-lg font-bold text-text">Profile</h3>
-              <button onClick={() => setShowProfile(false)} className="text-sm text-gray-300">X</button>
+              <button onClick={() => setShowProfile(false)} className="text-sm text-text/70 hover:text-text">X</button>
             </div>
             <div className="space-y-4">
+              <Profile user={currentUser} onUpdateLocalUser={(u) => { setCurrentUser(u); localStorage.setItem('user', JSON.stringify(u)); }} />
               <div>
-                <div className="text-xs font-bold text-gray-300">Name</div>
-                <div className="text-sm font-semibold text-text">{currentUser.username || currentUser.name || 'Guest'}</div>
-              </div>
-              <div>
-                <div className="text-xs font-bold text-gray-300">Role</div>
-                <div className="text-sm font-semibold text-text">{currentUser.role === 'staff' ? 'Staff' : 'Student'}</div>
-              </div>
-              <div>
-                <div className="text-xs font-bold text-gray-300">Programme</div>
+                <div className="text-xs font-bold text-text/70">Programme</div>
                 <div className="text-sm font-semibold text-text">{programName || currentUser.programme || currentUser.program || currentUser.course || ''}</div>
               </div>
             </div>
@@ -123,7 +138,38 @@ const SideNav = ({ setPage, onLogout, visible = true, toggleVisibility, inGrid =
         document.body
       )}
 
-      {/* when not in-grid and hidden, keep the small floating reveal button */}
+      {showNotifications && typeof document !== 'undefined' && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[9998] flex items-end justify-end p-4" onClick={() => setShowNotifications(false)}>
+          <div className="absolute inset-0" />
+          <div className="relative w-full max-w-sm p-5 rounded-2xl" onClick={(e)=>e.stopPropagation()} style={{ background: 'rgba(var(--color-sidenav-primary-rgb),0.95)', border: '2px solid var(--color-accent)' }}>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-bold text-text">Notifications</h3>
+              <button className="text-xs opacity-70" onClick={()=>setShowNotifications(false)}>Close</button>
+            </div>
+            <NotificationsPanel onSelect={(channelId, messageId) => {
+
+              if (String(channelId).startsWith('dm_')) {
+                const parts = String(channelId).substring(3).split('_').map(n=>Number(n)).filter(Boolean);
+                const currentUserId = (()=>{ try { return JSON.parse(localStorage.getItem('user')||'{}').user_ID; } catch { return null; } })();
+                const peerId = parts.find(p => p !== currentUserId) || parts[0];
+                window.__setAppPage && window.__setAppPage('direct');
+                setTimeout(()=>{
+                  window.dispatchEvent(new CustomEvent('jumpToDirectMessage', { detail: { peerId, messageId } }));
+                  setShowNotifications(false);
+                },50);
+              } else {
+                window.__setAppPage && window.__setAppPage('start');
+                setTimeout(()=>{
+                  window.dispatchEvent(new CustomEvent('jumpToChannelMessage', { detail: { channelId, messageId } }));
+                  setShowNotifications(false);
+                },50);
+              }
+            }} />
+          </div>
+        </div>, document.body)
+      }
+
+      {}
       {!inGrid && !visible && (
         <button
           onClick={toggleVisibility}
@@ -141,7 +187,7 @@ const SideNav = ({ setPage, onLogout, visible = true, toggleVisibility, inGrid =
   );
 };
 
-const SideNavIcon = ({ icon, onClick, extraClasses = "" }) => {
+const NavIcon = ({ icon, onClick, extraClasses = "" }) => {
   return (
     <div className="flex items-center mx-1">
       <div
@@ -159,4 +205,4 @@ const SideNavIcon = ({ icon, onClick, extraClasses = "" }) => {
   );
 }
 
-export default SideNav;
+export default Nav;
