@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+
+@font-face {
+  font-family: 'JetBrainsMono Nerd Font';
+  src: local('JetBrainsMono Nerd Font'), local('JetBrainsMonoNF'),
+       url('https://cdn.jsdelivr.net/gh/ryanoasis/nerd-fonts@2.3.3/patched-fonts/JetBrainsMono/Regular/JetBrainsMonoNerdFont-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrainsMono Nerd Font';
+  src: local('JetBrainsMono Nerd Font Bold'),
+       url('https://cdn.jsdelivr.net/gh/ryanoasis/nerd-fonts@2.3.3/patched-fonts/JetBrainsMono/Bold/JetBrainsMonoNerdFont-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+html, body, #root, * {
+  font-family: 'JetBrainsMono Nerd Font', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
+}
+
 #root {
   height: 100%;
   overflow: auto;
@@ -30,7 +52,6 @@
   background: var(--color-secondary);
 }
 
-/* Hover animations */
 .transform {
   transition: transform 0.3s ease;
 }
