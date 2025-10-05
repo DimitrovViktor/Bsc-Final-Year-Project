@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import getPageContent from "./SwitchPage";
 import AuthPage from "./AuthPage";
+import { NotificationsProvider, NotificationToasts } from './NotificationsContext';
+import { applyThemeFromStorage } from './themeUtil';
 
 function App() {
   const [page, setPage] = useState("authpage");
@@ -11,58 +13,13 @@ function App() {
   }
 
   useEffect(() => {
+    applyThemeFromStorage();
 
-    const savedTheme = localStorage.getItem('currentTheme') || 'dark';
-    const savedThemes = JSON.parse(localStorage.getItem('themes')) || {
-      light: {
-        '--color-text': '#333',
-        '--color-background': '#dedcff',
-        '--color-background-secondary': '#9d9afc',
-        '--color-sidenav-primary': '#ffffff',
-        '--color-sidenav-secondary': '#dedcff',
-        '--color-primary': '#fbfbfe',
-        '--color-secondary': '#433bff',
-        '--color-tertiary': '#dedcff',
-        '--color-accent': '#433bff',
-        '--color-input-txt': '#2c3033',
-        '--color-info-txt': '#343a40',
-        '--file-border-color': '#433bff',
-        '--color-timestamp': '#949ca6',
-        '--button-sec': '#9a96fd',
-      },
-      dark: {
-        '--color-text': '#e4eaeb',
-        '--color-background': '#2b303b',
-        '--color-background-secondary': '#1c1f26',
-        '--color-sidenav-primary': '#111317',
-        '--color-sidenav-secondary': '#141f38',
-        '--color-primary': '#16181d',
-        '--color-secondary': '#1e5680',
-        '--color-tertiary': '#292e38',
-        '--color-accent': '#4bb5f5',
-        '--color-input-txt': '#a0a1b2',
-        '--color-info-txt': '#b7b9cc',
-        '--file-border-color': '#4bb5f5',
-        '--color-timestamp': '#949ca6',
-        '--button-sec': '#378fd1',
-      }
-    };
-
-    localStorage.setItem('themes', JSON.stringify(savedThemes));
-    
-
-    const theme = savedThemes[savedTheme] || savedThemes.dark;
-    Object.entries(theme).forEach(([property, value]) => {
-      document.documentElement.style.setProperty(property, value);
-    });
-
-
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (user && user.name) {
+    const user = (()=>{ try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } })();
+    if (user && (user.name || user.username)) {
       setIsAuthenticated(true);
       setPage("start");
     }
-
 
     window.__setAppPage = (p) => { try { setPage(p); } catch (e) {} };
     return () => { delete window.__setAppPage; };
@@ -80,6 +37,13 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__currentAppPage = page;
+      window.dispatchEvent(new CustomEvent('appPageChanged', { detail: { page } }));
+    }
+  }, [page]);
+
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
     setPage("start");
@@ -92,18 +56,36 @@ function App() {
   };
 
   return (
-    <div>
-      {isAuthenticated ? (
-        <>
-          {}
-          <div className="transition-all duration-300">
-            {getPageContent(page)}
-          </div>
-        </>
-      ) : (
-        <AuthPage onLoginSuccess={handleLoginSuccess} />
-      )}
-    </div>
+    <NotificationsProvider>
+      <div>
+        {isAuthenticated ? (
+          <>
+            <div className="transition-all duration-300">
+              {getPageContent(page)}
+            </div>
+          </>
+        ) : (
+          <AuthPage onLoginSuccess={handleLoginSuccess} />
+        )}
+        <NotificationToasts onSelect={(channel, messageId) => {
+          const isDM = String(channel).startsWith('dm_');
+          if (isDM) {
+            const parts = String(channel).substring(3).split('_').map(n=>Number(n)).filter(Boolean);
+            const currentUserId = (()=>{ try { return JSON.parse(localStorage.getItem('user')||'{}').user_ID; } catch { return null; } })();
+            const peerId = parts.find(p => p !== currentUserId) || parts[0];
+            window.__setAppPage && window.__setAppPage('direct');
+            setTimeout(()=>{
+              window.dispatchEvent(new CustomEvent('jumpToDirectMessage', { detail: { peerId, messageId } }));
+            },50);
+          } else {
+            window.__setAppPage && window.__setAppPage('start');
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('jumpToChannelMessage', { detail: { channelId: channel, messageId } }));
+            }, 50);
+          }
+        }} />
+      </div>
+    </NotificationsProvider>
   );
 }
 
