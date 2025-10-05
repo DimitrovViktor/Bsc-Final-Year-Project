@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaGear, FaTrash } from "react-icons/fa6";
 
-// Helper function to convert hex to RGB
+
 const hexToRgb = (hex) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : null;
 };
 
 const ThemeSettings = () => {
-  // Default theme definitions
+
   const defaultThemes = {
     light: {
       '--color-text': '#333',
@@ -46,7 +46,7 @@ const ThemeSettings = () => {
     }
   };
 
-  // Add RGB versions for acrylic effect
+
   const addRgbVersions = (themes) => {
     const newThemes = { ...themes };
     for (const themeName in newThemes) {
@@ -65,12 +65,12 @@ const ThemeSettings = () => {
     return newThemes;
   };
 
-  // Get themes from localStorage or initialize with defaults
+
   const [themes, setThemes] = useState(() => {
     const savedThemes = localStorage.getItem('themes');
     const initialThemes = savedThemes ? JSON.parse(savedThemes) : defaultThemes;
     
-    // Ensure all themes have background image URL
+
     Object.keys(initialThemes).forEach(themeName => {
       if (!initialThemes[themeName]['--background-image-url']) {
         initialThemes[themeName]['--background-image-url'] = defaultThemes.dark['--background-image-url'];
@@ -80,47 +80,47 @@ const ThemeSettings = () => {
     return addRgbVersions(initialThemes);
   });
 
-  // Current theme name
+
   const [currentTheme, setCurrentTheme] = useState(() => {
     return localStorage.getItem('currentTheme') || 'dark';
   });
 
-  // Theme being edited
+
   const [editingTheme, setEditingTheme] = useState(null);
   
-  // New theme name
+
   const [newThemeName, setNewThemeName] = useState('');
 
-  // Apply theme to document
+ 
   const applyTheme = useCallback((themeName) => {
     const theme = themes[themeName];
     if (!theme) return;
     
-    // Apply each variable to root element
+
     Object.entries(theme).forEach(([property, value]) => {
       document.documentElement.style.setProperty(property, value);
     });
     
-    // Update state and storage
+
     setCurrentTheme(themeName);
     localStorage.setItem('currentTheme', themeName);
     
-    // Force re-render of all components
+
     const event = new CustomEvent('themeChanged');
     window.dispatchEvent(event);
   }, [themes]);
 
-  // Initialize theme on component mount
+
   useEffect(() => {
     applyTheme(currentTheme);
   }, [applyTheme, currentTheme]);
 
-  // Save themes to localStorage when they change
+
   useEffect(() => {
     localStorage.setItem('themes', JSON.stringify(themes));
   }, [themes]);
 
-  // Create a new theme
+
   const createNewTheme = () => {
     if (!newThemeName.trim()) return;
     
@@ -128,7 +128,7 @@ const ThemeSettings = () => {
       ...themes,
       [newThemeName]: { 
         ...themes[currentTheme],
-        // Copy background image from current theme
+
         '--background-image-url': themes[currentTheme]['--background-image-url'] 
       }
     };
@@ -140,7 +140,7 @@ const ThemeSettings = () => {
     applyTheme(newThemeName);
   };
 
-  // Update a theme variable
+
   const updateThemeVariable = (variable, value) => {
     const updatedThemes = {
       ...themes,
@@ -150,7 +150,7 @@ const ThemeSettings = () => {
       }
     };
     
-    // Update RGB version if needed
+
     if (value.startsWith('#') && variable !== '--background-image-url') {
       const rgb = hexToRgb(value);
       if (rgb) {
@@ -160,11 +160,11 @@ const ThemeSettings = () => {
     
     setThemes(updatedThemes);
     
-    // Update immediately
+
     document.documentElement.style.setProperty(variable, value);
   };
 
-  // Delete a custom theme
+
   const deleteTheme = (themeName) => {
     if (themeName === 'light' || themeName === 'dark') return;
     
@@ -177,7 +177,7 @@ const ThemeSettings = () => {
     }
   };
 
-  // Theme variables for editing
+
   const themeVariables = [
     { id: '--color-text', name: 'Text Color' },
     { id: '--color-background', name: 'Background' },
