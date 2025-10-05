@@ -56,6 +56,20 @@ const StartPage = () => {
     }
   }, [selectedModuleId, user.id, user.role]); 
 
+  useEffect(() => {
+    const handler = (e) => {
+      const { channelId } = e.detail || {};
+      if (!channelId) return;
+
+      const exists = channels.find(c => String(c.channel_ID) === String(channelId));
+      if (exists) {
+        setSelectedChannelId(String(channelId));
+      }
+    };
+    window.addEventListener('jumpToChannelMessage', handler);
+    return () => window.removeEventListener('jumpToChannelMessage', handler);
+  }, [channels]);
+
   const handleModuleClick = moduleId => {
     setSelectedModuleId(moduleId);
     setSelectedChannelId(null);
