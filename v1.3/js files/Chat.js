@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNotifications } from './NotificationsContext';
 import io from 'socket.io-client';
 import axios from 'axios';
 import moment from 'moment';
 import { FaTelegramPlane, FaPaperclip, FaTimesCircle, FaEdit, FaTrash, FaArrowLeft, FaArrowRight, FaDownload, FaTimes } from "react-icons/fa";
 
 const API_BASE_URL = 'http://localhost:5000';
-const socket = io(API_BASE_URL);
+const socket = io(API_BASE_URL, { query: typeof window !== 'undefined' ? `user_ID=${(JSON.parse(localStorage.getItem('user')||'{}').user_ID||'')}` : '' });
+if (typeof window !== 'undefined') { window.socket = socket; }
 
 const Chat = ({ channelId }) => {
   const [currentUser] = useState(JSON.parse(localStorage.getItem('user')) || {});
@@ -23,22 +25,66 @@ const Chat = ({ channelId }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const notifications = useNotifications();
+
   useEffect(() => {
     fetchMessages();
 
     const handleNewMessage = (msg) => {
-      if (msg.channel === channelId) {
-        fetchUser(msg.student_ID || msg.staff_ID, !!msg.staff_ID).then(username => {
-          const newMessage = {
-            ...msg,
-            username,
-            isStaff: !!msg.staff_ID,
-            message_content: msg.content,
-            timestamp: msg.timestamp,
-            is_deleted: false
-          };
-          setMessages(prevMessages => [...prevMessages, newMessage]);
-        });
+      const incomingChannel = msg.channel ?? msg.channel_ID ?? msg.channelId;
+      const activeChannelId = Number(channelId);
+      const currentPage = typeof window !== 'undefined' ? window.__currentAppPage : null;
+      const viewingSameChannel = Number(incomingChannel) === activeChannelId && currentPage === 'start';
+      const fromSelf = (msg.user_ID && msg.user_ID === currentUser.user_ID) || (msg.student_ID && msg.student_ID === currentUser.student_ID) || (msg.staff_ID && msg.staff_ID === currentUser.staff_ID);
+      if (viewingSameChannel) {
+
+        const isStaff = !!msg.staff_ID || msg.role === 'staff';
+        const roleId = isStaff ? msg.staff_ID : msg.student_ID;
+
+        const unifiedId = msg.user_ID || null;
+
+        const normalized = {
+          ...msg,
+          username: msg.display_name || msg.username || undefined,
+          isStaff,
+          staff_ID: msg.staff_ID || null,
+          student_ID: msg.student_ID || null,
+          user_ID: unifiedId, 
+          message_content: msg.content || msg.message_content,
+          timestamp: msg.timestamp || msg.message_timestamp,
+          is_deleted: false
+        };
+
+        if (msg.display_name || msg.profile_image || msg.status) {
+          if (unifiedId) userCache.current[`user_${unifiedId}`] = userCache.current[`user_${unifiedId}`] || {};
+          if (roleId) userCache.current[isStaff ? `staff_${roleId}` : `student_${roleId}`] = userCache.current[isStaff ? `staff_${roleId}` : `student_${roleId}`] || {};
+          const unified = unifiedId ? userCache.current[`user_${unifiedId}`] : {};
+          const roleEntry = userCache.current[isStaff ? `staff_${roleId}` : `student_${roleId}`];
+          if (msg.display_name) { unified.username = unified.username || msg.display_name; roleEntry.username = roleEntry.username || msg.display_name; }
+          if (msg.profile_image) { unified.avatar = msg.profile_image; roleEntry.avatar = msg.profile_image; }
+          if (msg.status) { unified.status = msg.status; roleEntry.status = msg.status; }
+        }
+
+        (async () => {
+          await fetchUser(unifiedId || roleId, isStaff, !!unifiedId);
+          setMessages(prev => [...prev, normalized]);
+        })();
+      } else {
+        if (!fromSelf && notifications) {
+          try {
+            const rawContent = msg.content || msg.message_content || '';
+            const previewBase = rawContent.split('||')[0];
+            const preview = previewBase ? previewBase.slice(0,140) : '[attachment]';
+            notifications.addNotification({
+              channel: incomingChannel,
+              message_ID: msg.message_ID,
+              from: msg.display_name || msg.username || 'User',
+              preview,
+              timestamp: msg.timestamp || msg.message_timestamp || new Date().toISOString(),
+              avatar: msg.profile_image
+            }, true);
+          } catch {}
+        }
       }
     };
 
@@ -89,40 +135,317 @@ const Chat = ({ channelId }) => {
     };
   }, [channelId]);
 
+  useEffect(() => {
+    const handler = (e) => {
+      const { channelId: targetChannel, messageId } = e.detail || {};
+      if (String(targetChannel) === String(channelId)) {
+        setTimeout(()=>{
+          const el = document.querySelector(`[data-msg-id="${messageId}"]`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('ring-4','ring-[var(--color-accent)]');
+            setTimeout(()=>{ el.classList.remove('ring-4','ring-[var(--color-accent)]'); }, 2000);
+          }
+        }, 100);
+      }
+    };
+    window.addEventListener('jumpToChannelMessage', handler);
+    return () => window.removeEventListener('jumpToChannelMessage', handler);
+  }, [channelId]);
+
   const fetchMessages = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/channels/${channelId}/messages`);
-      const fetchedMessages = response.data || [];
-      
-      const messagesWithUsernames = await Promise.all(fetchedMessages.map(async (msg) => {
-        const isStaff = msg.staff_ID !== null;
-        const userId = isStaff ? msg.staff_ID : msg.student_ID;
-        const username = await fetchUser(userId, isStaff);
+      const fetched = response.data || [];
+      const enriched = await Promise.all(fetched.map(async msg => {
+
+        const unifiedId = msg.user_ID || null;
+        const isStaff = msg.staff_ID != null ? true : (msg.student_ID != null ? false : undefined);
+        const roleId = isStaff ? msg.staff_ID : msg.student_ID;
+
+        try {
+          if (unifiedId) {
+            await fetchUser(unifiedId, isStaff, true);
+          } else if (roleId) {
+            await fetchUser(roleId, isStaff, false);
+          }
+        } catch {}
+
+        const tempMsg = { ...msg, user_ID: unifiedId, isStaff, staff_ID: msg.staff_ID, student_ID: msg.student_ID };
+        const { entry, key } = DEBUG_PROFILE ? getUserCacheEntryDebug(tempMsg) : { entry: getUserCacheEntry(tempMsg), key: null };
+        if (DEBUG_PROFILE) {
+          console.debug('[profile-debug][fetchMessages] msg', msg.message_ID || msg.id, 'roleId', roleId, 'unifiedId', unifiedId, 'resolvedKey', key, 'avatar', entry?.avatar, 'name', entry?.username);
+        }
+
         return {
           ...msg,
-          username,
-          isStaff,
-          timestamp: msg.message_timestamp,
+          username: entry?.username || entry?.username_display || msg.username || 'Unknown',
+          isStaff: !!(isStaff),
+          staff_ID: msg.staff_ID || null,
+          student_ID: msg.student_ID || null,
+          user_ID: unifiedId,
+          timestamp: msg.message_timestamp || msg.timestamp,
+          message_content: msg.message_content || msg.content,
           is_deleted: msg.is_deleted || false
         };
       }));
-
-      setMessages(messagesWithUsernames);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
+      setMessages(enriched);
+    } catch (e) {
+      console.error('Error fetching messages:', e);
     }
   };
 
-  const fetchUser = async (userId, isStaff) => {
-    const userTypeEndpoint = isStaff ? 'staff' : 'students';
+  const userCache = useRef({});
+
+  const DEBUG_PROFILE = true;
+
+
+  const getUserCacheEntryDebug = (msg) => {
+    if (!msg) return { entry: {}, key: null };
+    const isStaff = !!msg.isStaff || !!msg.staff_ID;
+    const roleId = isStaff ? msg.staff_ID : msg.student_ID;
+    if (roleId) {
+      const roleKey = isStaff ? `staff_${roleId}` : `student_${roleId}`;
+      const roleEntry = userCache.current[roleKey];
+      if (roleEntry) return { entry: roleEntry, key: roleKey };
+    }
+    if (msg.user_ID) {
+      const uKey = `user_${msg.user_ID}`;
+      const uEntry = userCache.current[uKey];
+      if (uEntry) return { entry: uEntry, key: uKey };
+    }
+    return { entry: {}, key: null };
+  };
+
+  const getUserCacheEntry = (msg) => {
+
+    if (!msg) return {};
+    const isStaff = !!msg.isStaff || !!msg.staff_ID;
+    const roleId = isStaff ? msg.staff_ID : msg.student_ID;
+    if (roleId) {
+      const roleEntry = userCache.current[isStaff ? `staff_${roleId}` : `student_${roleId}`];
+      if (roleEntry) return roleEntry;
+    }
+    if (msg.user_ID) {
+      const entry = userCache.current[`user_${msg.user_ID}`];
+      if (entry) return entry;
+    }
+    return {};
+  };
+
+  const formatDisplayName = (entryOrName) => {
+    if (!entryOrName) return '';
+
+    if (typeof entryOrName === 'object') {
+      const e = entryOrName;
+      if (e.student_name || e.staff_name || e.name) return e.student_name || e.staff_name || e.name;
+      if (e.username_display) return e.username_display;
+      if (e.username) {
+        return String(e.username).split(/[_.]/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+      }
+      return '';
+    }
+
+    return String(entryOrName).split(/[_.]/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+  };
+  const fetchUser = async (id, isStaff, idIsUnified = false) => {
+    if (!id) return 'Unknown';
+
+    const cacheKey = (typeof isStaff === 'boolean' && (!idIsUnified || (isStaff && !idIsUnified))) ? (isStaff ? `staff_${id}` : `student_${id}`) : `user_${id}`;
+    if (userCache.current[cacheKey]) return userCache.current[cacheKey].username;
     try {
-      const response = await axios.get(`${API_BASE_URL}/${userTypeEndpoint}/${userId}/info`);
-      return response.data.username;
+
+      if (!idIsUnified && typeof isStaff === 'boolean') {
+        const endpoint = isStaff ? 'staff' : 'students';
+        try {
+          const resp = await axios.get(`${API_BASE_URL}/${endpoint}/${id}/info`).catch(()=>null);
+            if (resp && resp.data && resp.data.username) {
+              const d = resp.data;
+              const username = d.display_name || d.username;
+              const entry = {
+                username,
+                username_display: formatDisplayName(username),
+                avatar: d.profile_image,
+                status: d.status,
+                student_name: d.student_name,
+                staff_name: d.staff_name
+              };
+              userCache.current[cacheKey] = { ...(userCache.current[cacheKey]||{}), ...entry };
+              if (d.user_ID) {
+                userCache.current[`user_${d.user_ID}`] = userCache.current[`user_${d.user_ID}`] || entry;
+              }
+              return username;
+            }
+        } catch {}
+      }
+
+      if (idIsUnified || (!isStaff)) { 
+        const profileResp = await axios.get(`${API_BASE_URL}/users/${id}/profile`).catch(()=>null);
+        if (profileResp && profileResp.data) {
+          const d = profileResp.data;
+          const username = d.student_name || d.staff_name || d.username || 'Unknown';
+          const entry = { username, username_display: formatDisplayName(username), avatar: d.profile_image, status: d.status, student_name: d.student_name, staff_name: d.staff_name };
+          if (!userCache.current[cacheKey]) userCache.current[cacheKey] = entry; else userCache.current[cacheKey] = { ...userCache.current[cacheKey], ...entry };
+          if (d.user_ID) userCache.current[`user_${d.user_ID}`] = userCache.current[`user_${d.user_ID}`] || entry;
+
+          if (d.role && d.user_ID) {
+            const roleKey = d.role === 'staff' ? `staff_${d.staff_ID || d.user_ID}` : `student_${d.student_ID || d.user_ID}`;
+            if (roleKey) userCache.current[roleKey] = userCache.current[roleKey] || entry;
+          }
+          return username;
+        }
+      }
+
+      if (typeof isStaff !== 'boolean' && !idIsUnified) {
+        try {
+          const respS = await axios.get(`${API_BASE_URL}/students/${id}/info`).catch(()=>null);
+          if (respS && respS.data && respS.data.username) {
+            const d = respS.data;
+            const username = d.display_name || d.username;
+            const entry = { username, username_display: formatDisplayName(username), avatar: d.profile_image, status: d.status, student_name: d.student_name };
+            userCache.current[`student_${id}`] = { ...(userCache.current[`student_${id}`]||{}), ...entry };
+            if (d.user_ID) userCache.current[`user_${d.user_ID}`] = userCache.current[`user_${d.user_ID}`] || entry;
+            return username;
+          }
+        } catch {}
+        try {
+          const respF = await axios.get(`${API_BASE_URL}/staff/${id}/info`).catch(()=>null);
+          if (respF && respF.data && respF.data.username) {
+            const d = respF.data;
+            const username = d.display_name || d.username;
+            const entry = { username, username_display: formatDisplayName(username), avatar: d.profile_image, status: d.status, staff_name: d.staff_name };
+            userCache.current[`staff_${id}`] = { ...(userCache.current[`staff_${id}`]||{}), ...entry };
+            if (d.user_ID) userCache.current[`user_${d.user_ID}`] = userCache.current[`user_${d.user_ID}`] || entry;
+            return username;
+          }
+        } catch {}
+      }
+      return 'Unknown';
     } catch (error) {
-      console.error(`Error fetching ${userTypeEndpoint} info:`, error);
+      console.error('Error fetching user info:', error);
       return 'Unknown';
     }
   };
+
+  useEffect(() => {
+    let mounted = true;
+
+    Promise.allSettled([
+      axios.get(`${API_BASE_URL}/users`).catch(()=>({ data: [] })),
+      axios.get(`${API_BASE_URL}/students`).catch(()=>({ data: [] })),
+      axios.get(`${API_BASE_URL}/staff`).catch(()=>({ data: [] })),
+    ]).then(results => {
+      if (!mounted) return;
+      const usersResp = (results[0] && results[0].status === 'fulfilled') ? (results[0].value.data || []) : [];
+      const studentsResp = (results[1] && results[1].status === 'fulfilled') ? (results[1].value.data || []) : [];
+      const staffResp = (results[2] && results[2].status === 'fulfilled') ? (results[2].value.data || []) : [];
+
+      const merge = (key, obj) => {
+        if (!obj) return;
+        userCache.current[key] = { ...(userCache.current[key] || {}), ...obj };
+      };
+
+      for (const u of usersResp) {
+        const nameCandidate = u.student_name || u.staff_name || u.name || u.display_name || u.username || (u.user_ID ? `user_${u.user_ID}` : 'Unknown');
+        const entry = {
+          username: u.username || nameCandidate,
+          username_display: formatDisplayName(u.student_name || u.staff_name || u.name || u.display_name || u.username || nameCandidate),
+          avatar: u.profile_image || null,
+          status: u.status || 'offline',
+          student_name: u.student_name || null,
+          staff_name: u.staff_name || null,
+          name: u.name || u.display_name || null,
+          user_ID: u.user_ID || null,
+          student_ID: u.student_ID || null,
+          staff_ID: u.staff_ID || null
+        };
+        if (entry.user_ID) merge(`user_${entry.user_ID}`, entry);
+        if (entry.student_ID) merge(`student_${entry.student_ID}`, entry);
+        if (entry.staff_ID) merge(`staff_${entry.staff_ID}`, entry);
+      }
+
+      for (const s of studentsResp) {
+        const nameCandidate = s.student_name || s.username || s.name || s.display_name || (s.student_ID ? `student_${s.student_ID}` : 'Student');
+        const entry = {
+          username: s.student_name || s.username || nameCandidate,
+          username_display: formatDisplayName(s.student_name || s.username || nameCandidate),
+          avatar: s.profile_image || null,
+          status: s.status || null,
+          student_name: s.student_name || null,
+          student_ID: s.student_ID || null,
+          user_ID: s.user_ID || null
+        };
+        if (entry.student_ID) merge(`student_${entry.student_ID}`, entry);
+        if (entry.user_ID) merge(`user_${entry.user_ID}`, entry);
+      }
+
+      for (const f of staffResp) {
+        const nameCandidate = f.staff_name || f.username || f.name || f.display_name || (f.staff_ID ? `staff_${f.staff_ID}` : 'Staff');
+        const entry = {
+          username: f.staff_name || f.username || nameCandidate,
+          username_display: formatDisplayName(f.staff_name || f.username || nameCandidate),
+          avatar: f.profile_image || null,
+          status: f.status || null,
+          staff_name: f.staff_name || null,
+          staff_ID: f.staff_ID || null,
+          user_ID: f.user_ID || null
+        };
+        if (entry.staff_ID) merge(`staff_${entry.staff_ID}`, entry);
+        if (entry.user_ID) merge(`user_${entry.user_ID}`, entry);
+      }
+
+
+      setMessages(prev => prev.map(m => ({ ...m })));
+    }).catch(()=>{});
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    const handleStatus = (data) => {
+
+      const uid = data.user_ID;
+      if (!uid) return;
+      const unifiedKey = `user_${uid}`;
+      const staffKey = `staff_${uid}`;
+      const studentKey = `student_${uid}`;
+      if (!userCache.current[unifiedKey]) userCache.current[unifiedKey] = {};
+      userCache.current[unifiedKey].status = data.status;
+      if (userCache.current[staffKey]) userCache.current[staffKey].status = data.status;
+      if (userCache.current[studentKey]) userCache.current[studentKey].status = data.status;
+
+      setMessages(prev => prev.map(m => ({ ...m })));
+    };
+    const handleAvatar = (data) => {
+      const uid = data.user_ID;
+      if (!uid) return;
+      const unifiedKey = `user_${uid}`;
+      const staffKey = `staff_${uid}`;
+      const studentKey = `student_${uid}`;
+      if (!userCache.current[unifiedKey]) userCache.current[unifiedKey] = {};
+      userCache.current[unifiedKey].avatar = data.profile_image;
+      userCache.current[unifiedKey].status = data.status || userCache.current[unifiedKey].status;
+      if (userCache.current[staffKey]) userCache.current[staffKey].avatar = data.profile_image;
+      if (userCache.current[studentKey]) userCache.current[studentKey].avatar = data.profile_image;
+      setMessages(prev => prev.map(m => ({ ...m })));
+    };
+
+    const handleUserUpdated = (data) => {
+      const uid = data.user_ID || data.userId || data.id;
+      if (!uid) return;
+      const unifiedKey = `user_${uid}`;
+      if (!userCache.current[unifiedKey]) userCache.current[unifiedKey] = {};
+      if (data.profile_image) userCache.current[unifiedKey].avatar = data.profile_image;
+      if (data.status) userCache.current[unifiedKey].status = data.status;
+      if (data.student_name) userCache.current[unifiedKey].student_name = data.student_name;
+      if (data.staff_name) userCache.current[unifiedKey].staff_name = data.staff_name;
+      setMessages(prev => prev.map(m => ({ ...m })));
+    };
+
+    socket.on('status_update', handleStatus);
+    socket.on('profile_image_update', handleAvatar);
+    socket.on('user_updated', handleUserUpdated);
+    return () => { socket.off('status_update', handleStatus); socket.off('profile_image_update', handleAvatar); socket.off('user_updated', handleUserUpdated); };
+  }, []);
 
   const sendMessage = async () => {
     if (!message.trim() && files.length === 0) return;
@@ -318,6 +641,8 @@ const Chat = ({ channelId }) => {
 
           const isCurrentUser = (currentUser.role === 'student' && msg.student_ID === currentUser.id) || (currentUser.role === 'staff' && msg.staff_ID === currentUser.id);
 
+          const entry = getUserCacheEntry(msg);
+
           let messageContent;
           if (msg.is_deleted) {
             messageContent = <div className="text-gray-500 italic">[message deleted]</div>;
@@ -354,12 +679,33 @@ const Chat = ({ channelId }) => {
           }
 
           return (
-            <div key={index} className={`message-bubble my-3 p-4 flex flex-col rounded-2xl transition-all duration-300 glow-effect animate-slide-up ${isCurrentUser ? 'bg-[rgba(var(--color-accent-rgb),0.2)] border-l-4 border-[var(--color-accent)] ml-10' : 'bg-[rgba(var(--color-tertiary-rgb),0.4)] border-l-4 border-[var(--color-secondary)] mr-10'}`} style={{ boxShadow: '0 0 10px rgba(var(--color-accent-rgb), 0.2)', animationDelay: `${index * 0.05}s` }}>
+            <div key={index} data-msg-id={msg.message_ID} className={`message-bubble my-3 p-4 flex flex-col rounded-2xl transition-all duration-300 glow-effect animate-slide-up ${isCurrentUser ? 'bg-[rgba(var(--color-accent-rgb),0.2)] border-l-4 border-[var(--color-accent)] ml-10' : 'bg-[rgba(var(--color-tertiary-rgb),0.4)] border-l-4 border-[var(--color-secondary)] mr-10'}`} style={{ boxShadow: '0 0 10px rgba(var(--color-accent-rgb), 0.2)', animationDelay: `${index * 0.05}s` }}>
               {}
               <div className="message-header flex justify-between items-center mb-2">
                 <div className="flex items-center">
-                  <span className={`px-3 py-1 rounded-full text-sm font-bold ${msg.isStaff ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>{msg.isStaff ? 'Staff ★' : 'Student'}</span>
-                  <span className="ml-2 font-semibold">{msg.username}</span>
+                  <div className="relative w-10 h-10 mr-3">
+                    {
+                      (() => {
+                        const debugInfo = DEBUG_PROFILE ? getUserCacheEntryDebug(msg) : { entry: getUserCacheEntry(msg), key: null };
+                        const entry2 = debugInfo.entry || {};
+
+                        const avatar = msg.profile_image || msg.profileImage || entry2.avatar || 'https://via.placeholder.com/80?text=U';
+                        const st = msg.status || entry2.status || 'offline';
+                        if (DEBUG_PROFILE) console.debug('[profile-debug][render] msg', msg.message_ID || msg.id, 'resolvedKey', debugInfo.key, 'avatar', avatar, 'name', msg.display_name || msg.name || entry2.username);
+                        const statusClass = st==='online'?'bg-green-500': st==='away'?'bg-yellow-400': st==='dnd'?'bg-red-500': st==='invisible'?'bg-gray-400':'bg-gray-500';
+                        return (
+                          <>
+                            <img src={avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover border-2 border-[var(--color-accent)]" />
+                            <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ring-2 ring-[var(--color-primary)] ${statusClass}`}></span>
+                          </>
+                        );
+                      })()
+                    }
+                  </div>
+                  <div className="flex flex-col">
+                    <span className={`px-3 py-1 mb-1 self-start rounded-full text-xs font-bold ${msg.isStaff ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>{msg.isStaff ? 'Staff ★' : 'Student'}</span>
+                    <span className="ml-1 font-semibold -mt-1">{formatDisplayName(msg.display_name || msg.name || msg.username || msg.displayName || entry || getUserCacheEntry(msg))}</span>
+                  </div>
                 </div>
                 <div className="flex items-center">
                   <span className="text-sm text-[var(--color-timestamp)]">
