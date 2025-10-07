@@ -65,5 +65,17 @@ Users can send each other private messages. They are also allowed to edit or del
     - Notifications button (enable/disable)
 
 ### Potential features for the future:
- - Voicechat for each group
- - Voicechat for direct messages
+ - Admin panel (staff only) - allows for staff to make changes and keeps a log of all changes made with timestamps.
+ - Admin message/group view (staff only) - allows staff to delete messages directly and edit groups, delete messages and remove users
+ - Assignment system (staff only) - allows staff to give assignments to users (includes individual assignments, assignments with groups of students)
+ - Grouping algorithm tweaks to improve assignment system - Each assignment allows staff to set a mode for the algorithm(useful if staff wants to test students' performance in different environments and scenarios). The Algorithm's settings should include the following options:
+      - Equality (help form groups with users who should be able to complete the task based on their total score) - aim to form groups within a certain amount of points and create a group as long as the users who are in the queue meet the point requirement just like the current system does
+      - Focus (help staff focus on whole groups of students at a time - students who perform worse would require more help and feedback, etc.) - aim to form groups of students with similar system scores (if a student performs well they would be assigned into a group with other students who perform similar to them)
+      - Random - completely random group selection
+ - Add types of assignments - individual, group option 1 (users must use the queue system to get put into a group), group option 2 (allows users to choose up to x people to queue up together to find y people to create a group, queues of 2, 3, etc.)
+ - Manual group request - allows users to request to be manually assigned to a group by staff
+ - Manual group change request - allows users to request to be put in another group (in case they are not satisfied with their current group)
+ - Report system - allows users to report members and send reports to staff
+ - Schedule system - allows users to check their assignment timetable
+ - Voicechat for each group and for direct messages
+ - Screenshare while in voicechat
