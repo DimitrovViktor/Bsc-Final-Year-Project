@@ -19,6 +19,20 @@ Grouptech is created using Python and React. The main purpose of the application
 
 ---
 
+## Global Features
+
+### Functional Profiles
+Each user has a profile. Profiles are accessible via the clickable profile pictures at the top (left of the nav bar). Users can look at their own profile and edit it.
+The following can be changed:
+-	Status – Online, Do Not Disturb, Away, Invisible, Offline
+-	Profile Picture – users can change their profile picture and everyone in their chats sees their profile picture, this can be done via the avatar change button
+  
+The following user information has been relocated to the profile section:
+-	Role – Staff, Student is shown when the user clicks in their profile
+-	Programme – The name of the user’s programme is shown once the profile is clicked
+
+---
+
 ## Groups Page
 
 ![Grousp Page](https://github.com/user-attachments/assets/9028ff34-f6cb-4d5a-88ac-0b19f379d164)
