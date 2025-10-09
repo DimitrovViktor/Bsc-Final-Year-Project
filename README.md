@@ -31,6 +31,11 @@ The following user information has been relocated to the profile section:
 -	Role – Staff, Student is shown when the user clicks in their profile
 -	Programme – The name of the user’s programme is shown once the profile is clicked
 
+### Notifications
+A section at the top right corner of the screen has been created, similar to the profiles section. This section shows notifications. Notifications are clickable. Once the notification is clicked the chat appears.
+
+When users receive a text message they get a popup notification at the bottom right corner of their screen.
+
 ---
 
 ## Groups Page
