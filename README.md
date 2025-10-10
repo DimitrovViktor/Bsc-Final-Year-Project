@@ -22,6 +22,11 @@ Grouptech is created using Python and React. The main purpose of the application
 ## Global Features
 
 ### Functional Profiles
+
+![Profile Panel](https://github.com/user-attachments/assets/b5882b95-1013-4634-888b-441d23f4dcf7)
+
+![Profile Button](https://github.com/user-attachments/assets/6be493d0-45b5-455f-896d-8e53266e19b9)
+
 Each user has a profile. Profiles are accessible via the clickable profile pictures at the top (left of the nav bar). Users can look at their own profile and edit it.
 The following can be changed:
 -	Status – Online, Do Not Disturb, Away, Invisible, Offline
