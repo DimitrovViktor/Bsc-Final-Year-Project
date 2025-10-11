@@ -37,9 +37,14 @@ The following user information has been relocated to the profile section:
 -	Programme – The name of the user’s programme is shown once the profile is clicked
 
 ### Notifications
+
 A section at the top right corner of the screen has been created, similar to the profiles section. This section shows notifications. Notifications are clickable. Once the notification is clicked the chat appears.
 
+![Notifications Section](https://github.com/user-attachments/assets/5c655721-fc54-45e2-b19e-eae0580255ef)
+
 When users receive a text message they get a popup notification at the bottom right corner of their screen.
+
+![Notifications List](https://github.com/user-attachments/assets/2f5f3d8c-b222-4a1f-b199-47652c9f0063)
 
 ---
 
