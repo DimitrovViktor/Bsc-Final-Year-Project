@@ -80,20 +80,7 @@ Users can send each other private messages. They are also allowed to edit or del
 
 ---
 
-### Features in progress:
- - Adding Functional profiles - full profiles with profile pictures, names, status (online, offline, away, etc.) (added backend functionality)
- - Notifications section with clickable notifications (added backend functionality)
- - Do not Disturb status - automatically disable notification popups
- - Clickabe notification popups - they take the user to the exact message sent by another user 
- - Main page changes:
-    - Display avatar and status next to names in messages
- - Direct Messages page changes:
-    - Display avatar and status next to names in messages
-    - Display avatar and status next to names in left section
- - Settings changes:
-    - Notifications button (enable/disable)
-
-### Potential features for the future:
+### Potential future work:
  - Admin panel (staff only) - allows for staff to make changes and keeps a log of all changes made with timestamps.
  - Admin message/group view (staff only) - allows staff to delete messages directly and edit groups, delete messages and remove users
  - Assignment system (staff only) - allows staff to give assignments to users (includes individual assignments, assignments with groups of students)
