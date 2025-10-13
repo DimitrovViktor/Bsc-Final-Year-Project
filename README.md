@@ -6,7 +6,7 @@ Grouptech is created using Python and React. The main purpose of the application
 
 ## Login Page
 
-![Login Page](https://github.com/user-attachments/assets/d9d13816-486d-4ec0-ae8a-ca27e2a30826)
+![Login Page](https://github.com/user-attachments/assets/4c5cc4c8-582a-46fd-a5e5-b5634a9db51d)
 
 ### Portal options:
  - Staff Login
