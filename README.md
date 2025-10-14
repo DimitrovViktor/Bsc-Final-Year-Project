@@ -50,7 +50,7 @@ When users receive a text message they get a popup notification at the bottom ri
 
 ## Groups Page
 
-![Grousp Page](https://github.com/user-attachments/assets/9028ff34-f6cb-4d5a-88ac-0b19f379d164)
+![Groups Page](https://github.com/user-attachments/assets/c06fdc8b-9550-4a4a-a479-b6bf88b85642)
 
 ### Features:
  - Modules - users can go to their specific subject modules
