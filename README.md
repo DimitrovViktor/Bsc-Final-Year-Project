@@ -77,6 +77,7 @@ Users can send each other private messages. They are also allowed to edit or del
 ### Features:
  - Theme change - users can select between theme presets
  - Custom theme creation - users can create custom themes and adjust every single color and the background image of the application
+ - Notification switch - turns notifications on and off
 
 ---
 
