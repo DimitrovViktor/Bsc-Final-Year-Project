@@ -72,7 +72,7 @@ Users can send each other private messages. They are also allowed to edit or del
 
 ## Settings Page
 
-![Settings Page](https://github.com/user-attachments/assets/cc0c5271-eaf8-4119-8a38-51e32d2510df)
+![Settings Page](https://github.com/user-attachments/assets/d1cb667c-6457-4f50-8950-10d7c1b73ac1)
 
 ### Features:
  - Theme change - users can select between theme presets
