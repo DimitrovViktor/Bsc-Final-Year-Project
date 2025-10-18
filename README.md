@@ -83,6 +83,7 @@ Users can send each other private messages. They are also allowed to edit or del
 
 ### Potential future work:
  - Admin panel (staff only) - allows for staff to make changes and keeps a log of all changes made with timestamps.
+ - Admin panel accessible through navbar, checks if user is staff in order to appear
  - Admin message/group view (staff only) - allows staff to delete messages directly and edit groups, delete messages and remove users
  - Assignment system (staff only) - allows staff to give assignments to users (includes individual assignments, assignments with groups of students)
  - Grouping algorithm tweaks to improve assignment system - Each assignment allows staff to set a mode for the algorithm(useful if staff wants to test students' performance in different environments and scenarios). The Algorithm's settings should include the following options:
