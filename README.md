@@ -64,9 +64,12 @@ When users receive a text message they get a popup notification at the bottom ri
 
 ## Direct Messages Page
 
-![Direct Messages Page](https://github.com/user-attachments/assets/d42f127c-4a83-44a1-982c-237d106ab60d)
+![Direct Messages Page](https://github.com/user-attachments/assets/9015924e-4eb4-4054-aa73-149def20b953)
 
-Users can send each other private messages. They are also allowed to edit or delete their own messages. Message updates (edited and deleted messages) display in real time after change.
+### Features:
+ - Private Messaging - users can send each other private messages
+ - Attachments - users can attach images and files to messages
+ - Message editing - users can edit or delete their own messages (message updates are displayed in real time)
 
 ---
 
