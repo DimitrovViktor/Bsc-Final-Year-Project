@@ -83,7 +83,8 @@ When users receive a text message they get a popup notification at the bottom ri
  - Notification switch - turns notifications on and off
 
 ---
-
+### Features in progress:
+ - Basic Admin panel
 ### Potential future work:
  - Admin panel (staff only) - allows for staff to make changes and keeps a log of all changes made with timestamps.
  - Admin panel accessible through navbar, checks if user is staff in order to appear
