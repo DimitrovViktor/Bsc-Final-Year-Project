@@ -1,6 +1,6 @@
-# GroupTech - A communication application with a grouping algorithm for students
+# Communication application with a grouping algorithm for students
 
-Grouptech is created using Python and React. The main purpose of the application is to place students into groups. Once the groups are made it creates group chats for students based on factors such as previous performance including grades, contribution percentages in previous projects, number of projects, etc. These chats can only be seen by the students in the group and staff.
+Grouptech(placeholder name) is created using Python and React. The main purpose of the application is to place students into groups. Once the groups are made it creates group chats for students based on factors such as previous performance including grades, contribution percentages in previous projects, number of projects, etc. These chats can only be seen by the students in the group and staff.
 
     Note on Project History: The core development for this project took place in 2024. The repository was created and the code was uploaded in 2025, which is why the commit history does not fully reflect the original development timeline.
 
@@ -53,10 +53,11 @@ When users receive a text message they get a popup notification at the bottom ri
 ![Groups Page](https://github.com/user-attachments/assets/c06fdc8b-9550-4a4a-a479-b6bf88b85642)
 
 ### Features:
+
  - Modules - users can go to their specific subject modules
  - Channels - each module has different text channels
-    - Sending Messages and attachments (A message can contain multiple files, text, and images. Messages have image preview/download options)
-    - Deleting/editing Messages (Messages are automatically updated in real time once edited/deleted for everyone looking at the chat)
+ - Sending Messages and attachments (A message can contain multiple files, text, and images. Messages have image preview/download options)
+ - Deleting/editing Messages (Messages are automatically updated in real time once edited/deleted for everyone looking at the chat)
  - Group Queue(students only) - students can use the algorithm to find a group based on factors including grades and contribution to projects
  - Group Chats(specific students and staff only) -  the grouping algorithm finds groups for students and creates a private group chat visible to group members(determined by algorithm) and staff members are allowed to view messages and moderate it
 
@@ -67,6 +68,7 @@ When users receive a text message they get a popup notification at the bottom ri
 ![Direct Messages Page](https://github.com/user-attachments/assets/9015924e-4eb4-4054-aa73-149def20b953)
 
 ### Features:
+
  - Private Messaging - users can send each other private messages
  - Attachments - users can attach images and files to messages
  - Message editing - users can edit or delete their own messages (message updates are displayed in real time)
@@ -78,14 +80,101 @@ When users receive a text message they get a popup notification at the bottom ri
 ![Settings Page](https://github.com/user-attachments/assets/d1cb667c-6457-4f50-8950-10d7c1b73ac1)
 
 ### Features:
+
  - Theme change - users can select between theme presets
  - Custom theme creation - users can create custom themes and adjust every single color and the background image of the application
  - Notification switch - turns notifications on and off
 
 ---
+
+## Requirements
+
+### System Prerequisites
+
+- **Node.js** (v18 or higher) and **npm**
+- **Python** (v3.10 or higher)
+- **SQLite3** (CLI available on PATH)
+- **Git**
+- (Recommended) **virtualenv** for Python
+
+---
+
+## Backend
+
+### Dependencies
+
+Install Python dependencies in a virtual environment:
+
+```sh
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+```
+
+pip install flask flask-socketio flask-cors pillow eventlet
+
+
+### Database Setup
+
+Create the database and tables:
+python [path/to/database_creation.py]
+
+Insert test data:
+python [path/to/test_data_insertion.py]
+
+
+### Running the Backend
+
+Start the backend server:
+python [path/to/app.py]
+
+## Frontend
+
+### Dependencies
+
+Install Node.js dependencies:
+npm install
+
+### Running the Frontend
+
+(run backend before running frontend)
+Start the React development server:
+npm start
+
+Default frontend URL: http://localhost:3000
+
+
+## API Overview
+
+- GET /programs — List all programs
+- GET /programs/<program_id>/modules — List modules for a program
+- POST /login/student — Student login
+- POST /login/staff — Staff login
+- GET /modules/<module_ID>/channels — List channels for a module
+- GET /channels/<channel_id>/messages — Get messages for a channel
+- POST /channels/<channel_id>/messages — Send message to a channel
+- PATCH /messages/<message_id> — Edit group message
+- DELETE /messages/<message_id> — Delete group message
+- POST /channels/<channel_ID>/members — Add channel member
+- GET /users — List all users
+- GET /users/<user_id>/profile — Get user profile
+- PATCH /users/<user_id>/profile — Update user profile/status
+- POST /users/<user_id>/profile/image — Upload profile image
+- POST /uploads — Upload a file
+- GET /uploads/<filename> — Download a file
+- POST /send_private_message — Send a direct message
+- GET /private_messages — Get direct messages between two users
+- PATCH /private_messages/<message_id> — Edit direct message
+- DELETE /private_messages/<message_id> — Delete direct message
+
+---
+
 ### Features in progress:
+
  - Basic Admin panel
+   
 ### Potential future work:
+
  - Admin panel (staff only) - allows for staff to make changes and keeps a log of all changes made with timestamps.
  - Admin panel accessible through navbar, checks if user is staff in order to appear
  - Admin message/group view (staff only) - allows staff to delete messages directly and edit groups, delete messages and remove users
