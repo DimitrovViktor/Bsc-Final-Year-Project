@@ -4,6 +4,16 @@ This application was created using Python and React. The main purpose of the app
 
     Note on Project History: The core development for this project took place in 2024. The repository was created and the code was uploaded in 2025, which is why the commit history does not fully reflect the original development timeline. The main files from each version are split into version folders (latest is v1.3).
 
+---
+
+![Application](https://github.com/user-attachments/assets/4221d857-2c4e-4cb9-80ee-e6d70d54b73d)
+
+---
+
+This application was created using Python and React. The main purpose of the application is to place students into groups. Once the groups are made it creates group chats for students based on factors such as previous performance including grades, contribution percentages in previous projects, number of projects, etc. These chats can only be seen by the students in the group and staff.
+
+---
+
 ## Login Page
 
 ![Login Page](https://github.com/user-attachments/assets/4c5cc4c8-582a-46fd-a5e5-b5634a9db51d)
