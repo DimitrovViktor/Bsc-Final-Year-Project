@@ -1,8 +1,8 @@
 # Communication application with a grouping algorithm for students
 
-Grouptech(placeholder name) is created using Python and React. The main purpose of the application is to place students into groups. Once the groups are made it creates group chats for students based on factors such as previous performance including grades, contribution percentages in previous projects, number of projects, etc. These chats can only be seen by the students in the group and staff.
+This application was created using Python and React. The main purpose of the application is to place students into groups. Once the groups are made it creates group chats for students based on factors such as previous performance including grades, contribution percentages in previous projects, number of projects, etc. These chats can only be seen by the students in the group and staff.
 
-    Note on Project History: The core development for this project took place in 2024. The repository was created and the code was uploaded in 2025, which is why the commit history does not fully reflect the original development timeline.
+    Note on Project History: The core development for this project took place in 2024. The repository was created and the code was uploaded in 2025, which is why the commit history does not fully reflect the original development timeline. The main files from each version are split into version folders (latest is v1.3).
 
 ## Login Page
 
@@ -65,7 +65,7 @@ When users receive a text message they get a popup notification at the bottom ri
 
 ## Direct Messages Page
 
-![Direct Messages Page](https://github.com/user-attachments/assets/9015924e-4eb4-4054-aa73-149def20b953)
+![Direct Messages Page](https://github.com/user-attachments/assets/6b118ff8-d9d7-48cb-a766-b65aeef99c5f)
 
 ### Features:
 
@@ -93,9 +93,9 @@ When users receive a text message they get a popup notification at the bottom ri
 
 - **Node.js** (v18 or higher) and **npm**
 - **Python** (v3.10 or higher)
-- **SQLite3** (CLI available on PATH)
+- **SQLite3**
 - **Git**
-- (Recommended) **virtualenv** for Python
+- **virtualenv** for Python
 
 ---
 
@@ -110,36 +110,44 @@ python -m venv venv
 # Windows:
 venv\Scripts\activate
 ```
-
+```sh
 pip install flask flask-socketio flask-cors pillow eventlet
-
+```
 
 ### Database Setup
 
 Create the database and tables:
+```sh
 python [path/to/database_creation.py]
-
+```
 Insert test data:
+```sh
 python [path/to/test_data_insertion.py]
-
+```
 
 ### Running the Backend
 
 Start the backend server:
+```sh
 python [path/to/app.py]
+```
 
 ## Frontend
 
 ### Dependencies
 
 Install Node.js dependencies:
+```sh
 npm install
+```
 
 ### Running the Frontend
 
 (run backend before running frontend)
 Start the React development server:
+```sh
 npm start
+```
 
 Default frontend URL: http://localhost:3000
 
