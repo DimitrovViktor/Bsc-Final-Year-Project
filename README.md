@@ -185,24 +185,55 @@ Default frontend URL: http://localhost:3000
 
 ---
 
-### Features in progress:
+## TO-DO
 
- - Basic Admin panel
-   
-### Potential future work:
+Basic Admin Panel
+Early administrative tools for managing users, groups, and system data.
 
- - Admin panel (staff only) - allows for staff to make changes and keeps a log of all changes made with timestamps.
- - Admin panel accessible through navbar, checks if user is staff in order to appear
- - Admin message/group view (staff only) - allows staff to delete messages directly and edit groups, delete messages and remove users
- - Assignment system (staff only) - allows staff to give assignments to users (includes individual assignments, assignments with groups of students)
- - Grouping algorithm tweaks to improve assignment system - Each assignment allows staff to set a mode for the algorithm(useful if staff wants to test students' performance in different environments and scenarios). The Algorithm's settings should include the following options:
-      - Equality (help form groups with users who should be able to complete the task based on their total score) - aim to form groups within a certain amount of points and create a group as long as the users who are in the queue meet the point requirement just like the current system does
-      - Focus (help staff focus on whole groups of students at a time - students who perform worse would require more help and feedback, etc.) - aim to form groups of students with similar system scores (if a student performs well they would be assigned into a group with other students who perform similar to them)
-      - Random - completely random group selection
- - Add types of assignments - individual, group option 1 (users must use the queue system to get put into a group), group option 2 (allows users to choose up to x people to queue up together to find y people to create a group, queues of 2, 3, etc.)
- - Manual group request - allows users to request to be manually assigned to a group by staff
- - Manual group change request - allows users to request to be put in another group (in case they are not satisfied with their current group)
- - Report system - allows users to report members and send reports to staff
- - Schedule system - allows users to check their assignment timetable
- - Voicechat for each group and for direct messages
- - Screenshare while in voicechat
+## Potential Future Work
+
+### Admin Tools (Staff Only)
+- Expanded Admin Panel - A full admin area where staff can make changes to the system, with a log that records all actions and timestamps.
+- Navbar Access Control - The admin panel appears in the navigation bar only when the logged-in user is a staff member.
+
+### Message and Group Management
+A staff-only view that allows:
+- Deleting messages
+- Editing groups
+- Removing users from groups
+- Assignment and Grouping Features
+
+### Assignment System
+A staff tool for creating assignments for:
+- Individual users
+- Entire groups
+- Custom sets of students
+
+### Grouping Algorithm Configuration
+Each assignment can use a specific grouping mode, letting staff organize students in different ways. Planned modes include:
+- Equality Mode – Forms groups whose total score stays within a set range, similar to the current system.
+- Focus Mode – Groups students with similar performance levels, making it easier for staff to support certain groups.
+- Random Mode – Creates groups completely at random.
+
+### Assignment Types
+- Individual assignments
+- Group Option 1: Groups formed through the queue system
+- Group Option 2: Users choose up to x people to queue with, and the system fills the remaining spots (if group not full)
+
+### User Requests and Moderation
+- Manual Group Request - Users can ask staff to be placed into a group manually.
+- Group Change Request - Users can request to move to another group if they are not satisfied with their current one.
+
+### Report System
+A feature allowing users to report other members, with reports sent to staff.
+
+### Schedule System
+Lets users view their assignment timetable and upcoming tasks.
+
+### Voice Chat
+Voice channels for:
+- Each group
+- Direct messages
+
+### Screensharing
+- Support for sharing screens inside voice chats for collaboration or help.
